@@ -1,4 +1,4 @@
-import sqlite3, traceback
+import sqlite3, traceback, json
 from werkzeug.security import generate_password_hash
 from users import Student, Teacher
 from quiz import Question, Quiz
@@ -441,23 +441,36 @@ def quickEditQuiz(quiz_id, title, lesson):
     return
 
 
-def getAllQuizzesByID(tid):
+# Get all quizzes created by a specific teacher or all quizzes
+def getAllQuizzes(tid=None):
     try:
         connection = getConnection()
         cursor = connection.cursor()
-        cursor.execute(
-            "SELECT teachers.tid, COUNT(*) FROM quiz JOIN teachers ON teachers.tid=quiz.created_by WHERE created_by=?",
-            (tid,),
-        )
-        result = cursor.fetchone()
-        return result[1] if result else 0
+
+        if tid:
+            # Quiz count μόνο για τον συγκεκριμένο καθηγητή
+            cursor.execute(
+                """
+                SELECT * FROM quiz
+                WHERE created_by = ?
+                """,
+                (tid,),
+            )
+        else:
+            # Συνολικός αριθμός quiz (όλων των καθηγητών)
+            cursor.execute("SELECT * FROM quiz")
+
+        result = cursor.fetchall()
+        return result
+
     except sqlite3.Error as error:
-        print(f"An error occured: {error}")
+        print(f"An error occurred: {error}")
+        return 0
     finally:
         connection.close()
-    return 0
 
 
+# Get matching items for a specific question
 def getMatchingItems(question_id):
     conn = getConnection()
     cursor = conn.cursor()
@@ -466,7 +479,9 @@ def getMatchingItems(question_id):
     )
     rows = cursor.fetchall()
     conn.close()
-    return [item for pair in rows for item in pair]  # flat list
+
+    # επιστρέφει [{item_1: ..., item_2: ...}, ...]
+    return [{"item_1": row[0], "item_2": row[1]} for row in rows]
 
 
 # Update Quiz function
@@ -560,6 +575,102 @@ def replaceMatchingPairs(question_id, matching_items):
         conn.close()
 
 
+# Save quiz result
+def save_quiz_result(sid, quiz_id, score, correct, total, xp, time_taken, total_spins):
+    connection = getConnection()
+    cursor = connection.cursor()
+    cursor.execute(
+        """
+        INSERT INTO quiz_results (sid, quiz_id, score, correct_answers, total_questions, xp_earned, time_taken, total_spins)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (sid, quiz_id, score, correct, total, xp, time_taken, total_spins),
+    )
+    quiz_result_id = cursor.lastrowid
+    connection.commit()
+    connection.close()
+    return quiz_result_id
+
+
+# Save student answers
+def save_student_answer(
+    quiz_result_id, sid, quiz_id, question_id, user_answer, is_correct
+):
+    connection = getConnection()
+    cursor = connection.cursor()
+    cursor.execute(
+        """
+        INSERT INTO student_answers (quiz_result_id, sid, quiz_id, question_id, user_answer, is_correct)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (quiz_result_id, sid, quiz_id, question_id, user_answer, is_correct),
+    )
+    connection.commit()
+    connection.close()
+
+
+# Get quiz summary for a specific student and quiz
+def get_quiz_summary(sid, quiz_id):
+    connection = getConnection()
+    cursor = connection.cursor()
+
+    # Το πιο πρόσφατο αποτέλεσμα και το ID του
+    cursor.execute(
+        """
+            SELECT id, score, correct_answers, total_questions, xp_earned, time_taken, completed_at, total_spins
+            FROM quiz_results
+            WHERE sid = ? AND quiz_id = ?
+            ORDER BY completed_at DESC
+            LIMIT 1
+        """,
+        (sid, quiz_id),
+    )
+    result = cursor.fetchone()
+
+    if not result:
+        connection.close()
+        return None
+
+    quiz_result_id, score, correct, total, xp, time_taken, completed_at, total_spins = (
+        result
+    )
+
+    # Απαντήσεις ΜΟΝΟ για αυτό το attempt
+    cursor.execute(
+        """
+            SELECT sa.question_id, sa.user_answer, sa.is_correct, q.question_text, q.question_type
+            FROM student_answers sa
+            JOIN questions q ON sa.question_id = q.id
+            WHERE sa.quiz_result_id = ?
+        """,
+        (quiz_result_id,),
+    )
+
+    answers = cursor.fetchall()
+
+    connection.close()
+
+    return {
+        "score": score,
+        "correct": correct,
+        "total": total,
+        "xp": xp,
+        "time_taken": time_taken,
+        "completed_at": completed_at,
+        "total_spins": total_spins,
+        "answers": [
+            {
+                "question_id": a[0],
+                "user_answer": json.loads(a[1]) if a[4] == "matching" else a[1],
+                "is_correct": bool(a[2]),
+                "question_text": a[3],
+                "question_type": a[4],
+            }
+            for a in answers
+        ],
+    }
+
+
 # Daily Spins
 def getDailySpins(sid, date):
     connection = getConnection()
@@ -621,6 +732,6 @@ def getActiveBonuses(sid):
     bonuses = []
     for bonus_type, expires in results:
         expires_dt = datetime.fromisoformat(expires)
-        formatted = expires_dt.strftime('%d/%m/%Y %H:%M')
+        formatted = expires_dt.strftime("%d/%m/%Y %H:%M")
         bonuses.append({"bonus": bonus_type, "expires": formatted})
     return bonuses

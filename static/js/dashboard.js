@@ -25,4 +25,26 @@ document.addEventListener("DOMContentLoaded", function () {
             }).catch(error => console.error("Error: " + error));
         });
     });
+
+    const animatedNumbers = document.querySelectorAll('.animated-number');
+
+    animatedNumbers.forEach(el => {
+        const target = parseFloat(el.dataset.target);
+        const isPercentage = el.textContent.trim().includes('%');
+
+        let count = 0;
+        const increment = target / 60; // 60 frames ≈ 1 sec
+
+        const updateCount = () => {
+            count += increment;
+            if (count >= target) {
+                el.textContent = isPercentage ? `${target.toFixed(1)}%` : Math.round(target);
+            } else {
+                el.textContent = isPercentage ? `${count.toFixed(1)}%` : Math.round(count);
+                requestAnimationFrame(updateCount);
+            }
+        };
+
+        requestAnimationFrame(updateCount);
+    });
 });

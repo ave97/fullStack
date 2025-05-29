@@ -1,11 +1,14 @@
 document.addEventListener('DOMContentLoaded', function () {
-    // 📌 Αρχικές μεταβλητές
     let score = 0;
+    let correctAnswer = 0;
     let angle = 0;
     let startTime = null;
     let pendingPoints = 0;
     let currentWinningSlice = null;
     let idleRotationInterval = null;
+    let matches = [];
+    let userAnswers = [];
+    let totalSpins = 0;
 
     const scoreDisplay = document.getElementById('score');
     const timerDisplay = document.getElementById('timer');
@@ -22,7 +25,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function startIdleRotation() {
         let idleAngle = 0;
         idleRotationInterval = setInterval(() => {
-            idleAngle += 0.1; // πολύ αργή περιστροφή
+            idleAngle += 0.1;
             wheelSetup.wheelGroup.style.transform = `rotate(${idleAngle}deg)`;
         }, 20);
     }
@@ -40,9 +43,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     spinButton.addEventListener('click', function () {
-        if (!startTime) {
-            startTime = Date.now();
-        }
+        if (!startTime) startTime = Date.now();
 
         if (idleRotationInterval) {
             clearInterval(idleRotationInterval);
@@ -51,11 +52,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const spins = Math.floor(Math.random() * 3) + 3;
         const extraDegrees = Math.floor(Math.random() * 360);
-
         angle += spins * 360 + extraDegrees;
-        tickSound.play();
 
+        tickSound.play();
         wheelSetup.wheelGroup.style.transform = `rotate(${angle}deg)`;
+
+        totalSpins++;
 
         setTimeout(() => {
             tickSound.pause();
@@ -65,18 +67,10 @@ document.addEventListener('DOMContentLoaded', function () {
             const sector = Math.floor((360 - normalized) / wheelSetup.sliceAngle);
             const pickedLabel = wheelSetup.labels[sector % wheelSetup.numberOfSlices];
 
-            // Καθαρίζουμε προηγούμενα blink
-            if (currentWinningSlice) {
-                currentWinningSlice.classList.remove('slice-blink', 'slice-pop');
-                currentWinningSlice = null;
-            }
-
+            if (currentWinningSlice) currentWinningSlice.classList.remove('slice-blink', 'slice-pop');
             wheelSetup.slices.forEach(slice => slice.classList.remove('slice-blink', 'slice-pop'));
 
-            const winningSliceIndex = sector % wheelSetup.numberOfSlices;
-            const winningSlice = wheelSetup.slices[winningSliceIndex];
-
-            // Κάνουμε το σωστό slice να αναβοσβήνει
+            const winningSlice = wheelSetup.slices[sector % wheelSetup.numberOfSlices];
             currentWinningSlice = winningSlice;
             winningSlice.classList.add('slice-blink', 'slice-pop');
 
@@ -84,144 +78,222 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (pickedLabel === 'Bomb') {
                 score = 0;
-                if (score < 0) score = 0;
                 scoreDisplay.classList.add('bomb');
                 scoreDisplay.textContent = `Score: ${score}`;
-                setTimeout(() => {
-                    scoreDisplay.classList.remove('bomb');
-                }, 1500);
-
-                return; // Δεν εμφανίζουμε ερώτηση
+                setTimeout(() => scoreDisplay.classList.remove('bomb'), 1500);
+                return;
             } else if (pickedLabel.startsWith('-')) {
-                score -= Math.abs(parseInt(pickedLabel));
-                if (score < 0) score = 0;
+                score = Math.max(0, score - Math.abs(parseInt(pickedLabel)));
                 scoreDisplay.classList.add('bling', 'lose');
                 scoreDisplay.textContent = `Score: ${score}`;
-                setTimeout(() => {
-                    scoreDisplay.classList.remove('bling', 'lose');
-                }, 1500);
-
-                return; // Δεν εμφανίζουμε ερώτηση
-            } else {
-                // Θετικός αριθμός ➔ Περιμένουμε σωστή απάντηση
-                pendingPoints = parseInt(pickedLabel);
-                console.log(`Πρέπει να απαντήσει σωστά για +${pendingPoints} πόντους`);
-
-                showNextQuestion();
+                setTimeout(() => scoreDisplay.classList.remove('bling', 'lose'), 1500);
+                return;
             }
+
+            pendingPoints = parseInt(pickedLabel);
+            showNextQuestion();
         }, 4000);
     });
 
     function showNextQuestion() {
         questionBox.innerHTML = '';
-    
-        if (currentQuestionIndex >= questions.length) {
-            endGame();
-            return;
-        }
-    
+        if (currentQuestionIndex >= questions.length) return endGame();
+
         const question = questions[currentQuestionIndex];
-    
-        const questionTitle = document.createElement('div');
-        questionTitle.textContent = question.question_text;
-        questionTitle.style.marginBottom = '20px';
-        questionTitle.style.fontSize = '22px';
-        questionBox.appendChild(questionTitle);
-    
-        // Δημιουργούμε wrapper για τα κουμπιά
-        const optionsWrapper = document.createElement('div');
-        optionsWrapper.classList.add('options-wrapper');
-        questionBox.appendChild(optionsWrapper);
-    
+
+        const title = document.createElement('div');
+        title.textContent = question.question_text;
+        title.style.marginBottom = '20px';
+        title.style.fontSize = '22px';
+        questionBox.appendChild(title);
+
+        const wrapper = document.createElement('div');
+        wrapper.classList.add('options-wrapper');
+        questionBox.appendChild(wrapper);
+
         if (question.question_type === 'multiple_choice') {
             question.options.forEach((option, index) => {
                 if (option) {
-                    const button = document.createElement('button');
-                    button.textContent = option;
-                    button.classList.add('answer-button');
-                    button.setAttribute('data-value', (index + 1)); // index + 1 = 1,2,3,4
-                    button.onclick = () => checkAnswer(index + 1, question.correct_answer);
-                    optionsWrapper.appendChild(button);
+                    const btn = document.createElement('button');
+                    btn.textContent = option;
+                    btn.classList.add('answer-button');
+                    btn.onclick = () => checkAnswer(index + 1, question.correct_answer, question, option);
+                    wrapper.appendChild(btn);
                 }
             });
         } else if (question.question_type === 'true_false') {
             ['True', 'False'].forEach(option => {
-                const button = document.createElement('button');
-                button.textContent = option;
-                button.classList.add('answer-button');
-                button.setAttribute('data-value', option.toLowerCase());
-                button.onclick = () => checkAnswer(option.toLowerCase(), String(question.correct_answer).toLowerCase());
-                optionsWrapper.appendChild(button);
+                const btn = document.createElement('button');
+                btn.textContent = option;
+                btn.classList.add('answer-button');
+                btn.onclick = () => checkAnswer(option.toLowerCase(), String(question.correct_answer).toLowerCase(), question, option);
+                wrapper.appendChild(btn);
             });
+        } else if (question.question_type === 'matching') {
+            matches = [];
+            const pairs = question.matching_pairs;
+            const leftItems = [...new Set(pairs.map(p => p.item_1))];
+            const rightItems = [...new Set(pairs.map(p => p.item_2))];
+
+            const container = document.createElement("div");
+            container.classList.add("matching-container");
+
+            const leftCol = document.createElement("div");
+            leftCol.classList.add("matching-column", "left-column");
+            const rightCol = document.createElement("div");
+            rightCol.classList.add("matching-column", "right-column");
+
+            leftItems.forEach(item => {
+                const el = document.createElement("div");
+                el.classList.add("match-item");
+                el.textContent = item;
+                el.setAttribute("data-side", "left");
+                el.setAttribute("data-value", item);
+                leftCol.appendChild(el);
+            });
+
+            rightItems.forEach(item => {
+                const el = document.createElement("div");
+                el.classList.add("match-item");
+                el.textContent = item;
+                el.setAttribute("data-side", "right");
+                el.setAttribute("data-value", item);
+                rightCol.appendChild(el);
+            });
+
+            container.appendChild(leftCol);
+            container.appendChild(rightCol);
+
+            const svgLines = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            svgLines.classList.add("matching-lines");
+            svgLines.setAttribute("width", "100%");
+            svgLines.setAttribute("height", "100%");
+            svgLines.style.position = "absolute";
+            svgLines.style.top = "0";
+            svgLines.style.left = "0";
+            svgLines.style.pointerEvents = "none";
+            container.appendChild(svgLines);
+
+            questionBox.appendChild(container);
+            setupMatchingLogic();
+
+            const submitBtn = document.createElement('button');
+            submitBtn.textContent = "Submit Answer";
+            submitBtn.classList.add("answer-button");
+            submitBtn.onclick = () => checkMatchingAnswer(matches, question.matching_pairs, question);
+            questionBox.appendChild(submitBtn);
         }
     }
-    
 
-    function checkAnswer(selected, correct) {
-        const allButtons = document.querySelectorAll('.answer-button');
-        allButtons.forEach(btn => btn.disabled = true);
+    function setupMatchingLogic() {
+        let firstSelected = null;
+        matches = [];
 
-        if (currentWinningSlice) {
-            currentWinningSlice.classList.remove('slice-blink', 'slice-pop');
-            currentWinningSlice = null;
-        }
+        document.querySelectorAll(".match-item").forEach(item => {
+            item.addEventListener("click", () => {
+                if (item.classList.contains("selected")) {
+                    item.classList.remove("selected");
+                    firstSelected = null;
+                    return;
+                }
 
-        let isCorrect = false;
+                item.classList.add("selected");
 
-        if (typeof selected === 'number') {
-            isCorrect = (selected === correct);
-        } else {
-            isCorrect = (selected === correct);
-        }
+                if (!firstSelected) {
+                    firstSelected = item;
+                } else if (firstSelected.getAttribute("data-side") !== item.getAttribute("data-side")) {
+                    const left = firstSelected.getAttribute("data-side") === "left" ? firstSelected : item;
+                    const right = firstSelected.getAttribute("data-side") === "right" ? firstSelected : item;
 
-        const correctButton = Array.from(allButtons).find(btn => {
-            const btnValue = btn.getAttribute('data-value');
-            if (typeof correct === 'number') {
-                return Number(btnValue) === correct;
-            } else {
-                return btnValue === correct;
-            }
+                    matches.push({ left: left.getAttribute("data-value"), right: right.getAttribute("data-value") });
+
+                    left.classList.add("matched");
+                    right.classList.add("matched");
+                    left.classList.remove("selected");
+                    right.classList.remove("selected");
+
+                    const svg = document.querySelector(".matching-lines");
+                    const leftRect = left.getBoundingClientRect();
+                    const rightRect = right.getBoundingClientRect();
+                    const containerRect = svg.parentElement.getBoundingClientRect();
+
+                    const x1 = leftRect.right - containerRect.left;
+                    const y1 = leftRect.top + leftRect.height / 2 - containerRect.top;
+                    const x2 = rightRect.left - containerRect.left;
+                    const y2 = rightRect.top + rightRect.height / 2 - containerRect.top;
+
+                    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    line.setAttribute("x1", x1);
+                    line.setAttribute("y1", y1);
+                    line.setAttribute("x2", x2);
+                    line.setAttribute("y2", y2);
+                    line.setAttribute("stroke", "#ffd166");
+                    line.setAttribute("stroke-width", "3");
+                    line.setAttribute("stroke-linecap", "round");
+
+                    svg.appendChild(line);
+                    firstSelected = null;
+                } else {
+                    firstSelected.classList.remove("selected");
+                    item.classList.remove("selected");
+                    firstSelected = null;
+                }
+            });
         });
+    }
 
-        const selectedButton = Array.from(allButtons).find(btn => {
-            const btnValue = btn.getAttribute('data-value');
-            if (typeof selected === 'number') {
-                return Number(btnValue) === selected;
-            } else {
-                return btnValue === selected;
-            }
-        });
-
+    function checkAnswer(selected, correct, question, userResponse) {
+        const isCorrect = selected === correct;
         if (isCorrect) {
-            selectedButton.classList.add('correct');
-            console.log("✅ Σωστή απάντηση!");
             score += pendingPoints;
-            scoreDisplay.classList.add('bling', 'win');
+            correctAnswer++;
+            scoreDisplay.classList.add("bling", "win");
         } else {
-            selectedButton.classList.add('wrong');
-            if (correctButton) {
-                correctButton.classList.add('correct');
-            }
-            console.log("❌ Λάθος απάντηση!");
-            scoreDisplay.classList.add('bling', 'lose');
+            scoreDisplay.classList.add("bling", "lose");
         }
 
-        pendingPoints = 0;
         scoreDisplay.textContent = `Score: ${score}`;
+        userAnswers.push({ question, correct: isCorrect, userResponse });
 
         setTimeout(() => {
-            scoreDisplay.classList.remove('bling', 'win', 'lose');
+            scoreDisplay.classList.remove("bling", "win", "lose");
             currentQuestionIndex++;
-
-            // ✨ Μόλις απαντήσει, καθάρισε την ερώτηση
             questionBox.innerHTML = '<div>Spin the wheel</div>';
-
-            if (currentQuestionIndex >= questions.length) {
-                endGame();
-            }
+            if (currentQuestionIndex >= questions.length) endGame();
         }, 1500);
     }
 
+    function checkMatchingAnswer(givenMatches, correctMatches, question) {
+        const svg = document.querySelector(".matching-lines");
+        const lines = svg.querySelectorAll("line");
+        let correctCount = 0;
+
+        givenMatches.forEach((match, index) => {
+            const isCorrect = correctMatches.some(
+                correct => correct.item_1 === match.left && correct.item_2 === match.right
+            );
+            if (lines[index]) lines[index].setAttribute("stroke", isCorrect ? "#4caf50" : "#e53935");
+            if (isCorrect) correctCount++;
+        });
+
+        const isAllCorrect = correctCount === correctMatches.length;
+        if (isAllCorrect) {
+            score += pendingPoints;
+            scoreDisplay.classList.add("bling", "win");
+        } else {
+            scoreDisplay.classList.add("bling", "lose");
+        }
+
+        scoreDisplay.textContent = `Score: ${score}`;
+        userAnswers.push({ question, correct: isAllCorrect, userResponse: givenMatches });
+
+        setTimeout(() => {
+            scoreDisplay.classList.remove("bling", "win", "lose");
+            currentQuestionIndex++;
+            questionBox.innerHTML = '<div>Spin the wheel</div>';
+            if (currentQuestionIndex >= questions.length) endGame();
+        }, 1500);
+    }
 
     function endGame() {
         spinButton.disabled = true;
@@ -229,11 +301,25 @@ document.addEventListener('DOMContentLoaded', function () {
         const endTime = Date.now();
         const totalTime = Math.floor((endTime - startTime) / 1000);
 
-        questionBox.innerHTML = `
-            <div>🎉 Μπράβο! Τέλος παιχνιδιού!</div>
-            <div>🕓 Χρόνος: ${Math.floor(totalTime / 60)}:${(totalTime % 60).toString().padStart(2, '0')}</div>
-            <div>🏆 Σκορ: ${score}</div>
-        `;
+        const payload = {
+            quiz_id: quizData.id,
+            score,
+            totalTime,
+            correct: userAnswers.filter(a => a.correct).length,
+            total: userAnswers.length,
+            answers: userAnswers,
+            total_spins: totalSpins
+        };
+
+        fetch("/quiz_summary_data", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+        }).then(() => {
+            window.location.href = `/quiz_summary/${quizData.id}`;
+        });
     }
 
     startIdleRotation();

@@ -9,12 +9,14 @@ from flask import (
     send_file,
     flash,
 )
-import database, random
+import database, random, json
 from werkzeug.security import check_password_hash, generate_password_hash
 from quiz import Question, Quiz
 import os, re, io, csv, zipfile, traceback
 from datetime import datetime, timedelta
 from users import Teacher, Student
+from leveling import get_student_level_info
+
 
 from plotly.offline import plot
 import plotly.graph_objs as go
@@ -141,7 +143,6 @@ def student_dashboard():
         return redirect(url_for("no_access"))
 
     sid = student[0]
-    print(sid)
 
     # Λήψη ειδοποιήσεων για τον χρήστη
     notifications = database.getNotification(sid)  # Χρησιμοποιούμε το sid ως user_id
@@ -151,23 +152,80 @@ def student_dashboard():
         quiz_id = notification[3]
         send_notification.append({"message": message, "quiz_id": quiz_id})
 
-    leaderboard = [
-        {"name": "John", "score": 500},
-        {"name": "Maria", "score": 450},
-        {"name": "Nick", "score": 400},
-        {"name": "Eleni", "score": 350},
-        {"name": "George", "score": 300},
-    ]
+    conn = database.getConnection()
+    cursor = conn.cursor()
 
-    insights = {"quizzes_played": 12, "correct_rate": 78}
+    # Recent quizzes
+    cursor.execute(
+        """
+            SELECT q.title, r.score, r.completed_at
+            FROM quiz_results r
+            JOIN quiz q ON q.id = r.quiz_id
+            WHERE r.sid = ?
+            ORDER BY r.completed_at DESC
+            LIMIT 5
+        """,
+        (sid,),
+    )
+    recent_quizzes = cursor.fetchall()
 
-    quizzes = [
-        {"id": 1, "title": "Math Challenge"},
-        {"id": 2, "title": "History of Ancient Greece"},
-        {"id": 3, "title": "Science Quiz: Space Exploration"},
-        {"id": 4, "title": "English Grammar Basics"},
-        {"id": 5, "title": "Geography Around the World"},
-    ]
+    # Quiz-to-do
+    cursor.execute(
+        """
+        SELECT q.id, q.title
+        FROM quiz q
+        LEFT JOIN quiz_results r ON q.id = r.quiz_id AND r.sid = ?
+        WHERE r.quiz_id IS NULL
+    """,
+        (sid,),
+    )
+    quizzes_to_do = cursor.fetchall()
+    quizzes = [{"id": q[0], "title": q[1]} for q in quizzes_to_do]
+
+    # Πλήθος κουίζ που έχει παίξει
+    cursor.execute("SELECT COUNT(*) FROM quiz_results WHERE sid = ?", (sid,))
+    quizzes_played = cursor.fetchone()[0]
+
+    # Συνολικές σωστές και συνολικές ερωτήσεις
+    cursor.execute(
+        """
+        SELECT SUM(correct_answers), SUM(total_questions)
+        FROM quiz_results
+        WHERE sid = ?
+    """,
+        (sid,),
+    )
+    correct, total = cursor.fetchone()
+    correct = correct or 0
+    total = total or 0
+    correct_rate = round((correct / total) * 100, 1) if total > 0 else 0
+    insights = {"quizzes_played": quizzes_played, "correct_rate": correct_rate}
+
+    # Γραφή στατιστικών για τα μαθήματα
+    cursor.execute(
+        """
+        SELECT q.lesson, SUM(r.correct_answers), SUM(r.total_questions)
+        FROM quiz_results r
+        JOIN quiz q ON q.id = r.quiz_id
+        WHERE r.sid = ?
+        GROUP BY q.lesson
+        """,
+        (sid,),
+    )
+
+    lesson_stats = cursor.fetchall()
+
+    chart_data = []
+    for lesson, correct, total in lesson_stats:
+        if total > 0:
+            rate = round((correct / total) * 100, 1)
+            chart_data.append(
+                {"label": lesson, "value": rate, "correct": correct, "total": total}
+            )
+
+    print("Chart data:", chart_data)
+
+    conn.close()
 
     achievements = [
         {"name": "First Quiz Completed"},
@@ -178,7 +236,15 @@ def student_dashboard():
 
     bonuses = database.getActiveBonuses(sid)
 
-    level_data = {"level": 3, "current_xp": 320, "required_xp": 500}
+    level_info = get_student_level_info(sid)
+    level_data = {
+        "level": level_info["level"],
+        "current_xp": level_info["xp_into_level"],
+        "required_xp": level_info["xp_for_next_level"],
+        "progress_percent": level_info["progress_percent"],
+        "total_xp": level_info["total_xp"],
+        "remaining_xp": level_info["xp_for_next_level"] - level_info["xp_into_level"],
+    }
 
     return render_template(
         "student_dashboard.html",
@@ -188,8 +254,9 @@ def student_dashboard():
         quizzes=quizzes,
         achievements=achievements,
         bonuses=bonuses,
-        leaderboard=leaderboard,
+        recent_quizzes=recent_quizzes,
         insights=insights,
+        chart_data=chart_data,
     )
 
 
@@ -234,12 +301,6 @@ def daily_spin():
         expires = datetime.now() + timedelta(hours=24)
         database.insertActiveBonus(sid, selected_bonus, start, expires)
 
-    # 🔍 Debug info
-    print("🎯 Daily Spin Debug:")
-    print("Selected bonus:", selected_bonus)
-    print("Chosen index:", chosen_index)
-    print("Final rewards list:", rewards)
-
     database.insertDailySpins(sid, today, selected_bonus)
 
     return jsonify(
@@ -276,26 +337,25 @@ def myAccount():
     if role == "teacher":
         teacher = database.getTeacherInfo(username)
         tid = teacher.getTid()
-        quizzes = database.getAllQuizzesByID(tid)
+        quizzes = database.getQuizzesByTeacher(tid)
         total_quizzes = len(quizzes)
 
         online_user = {
             "username": user[1],
+            "id": tid,
             "email": user[2],
             "quiz_count": total_quizzes,
-            "full_name": teacher.getName(),
+            "full_name": teacher.getUsername(),
             "role": "teacher",
         }
 
         return render_template(
-            "account_teacher.html", user=online_user, quizzes=quizzes
+            "teacher_account.html", user=online_user, quizzes=quizzes
         )
 
     elif role == "student":
         student = database.getStudentInfo(username)
         sid = student[0]
-
-        full_name = session["user"]
 
         # Mocked quiz performance data
         labels = ["Math", "Science", "History", "Geo"]
@@ -316,64 +376,67 @@ def myAccount():
         # Achievements (fake for now)
         achievements = [{"name": "First Quiz"}, {"name": "100 Points!"}]
 
+        level_info = get_student_level_info(sid)
+        level_data = {
+            "level": level_info["level"],
+            "current_xp": level_info["xp_into_level"],
+            "required_xp": level_info["xp_for_next_level"],
+            "progress_percent": level_info["progress_percent"],
+            "total_xp": level_info["total_xp"],
+            "remaining_xp": level_info["xp_for_next_level"]
+            - level_info["xp_into_level"],
+        }
+
         online_user = {
             "username": user[1],
+            "id": sid,
             "email": user[2],
-            "level": 3,
-            "xp": 320,
-            "quiz_count": 4,
             "role": "student",
         }
+
+        conn = database.getConnection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT DISTINCT q.id, q.title FROM quiz q JOIN quiz_results r ON q.id = r.quiz_id WHERE r.sid = ?",
+            (sid,),
+        )
+        quizzes_done = cursor.fetchall()
+        conn.close()
 
         return render_template(
             "student_account.html",
             user=online_user,
+            level_data=level_data,
             chart_html=chart_html,
             achievements=achievements,
+            quizzes_done=quizzes_done,
         )
 
 
 @app.route("/update_account", methods=["POST"])
 def update_account():
-    user = database.selectUser(session["user"])
+    old_username = session["user"]
     new_username = request.form["name"]
     new_email = request.form["email"]
     new_password = request.form["password"]
 
+    user = database.selectUser(old_username)
+
     if new_password:
         if len(new_password) < 6:
-            return render_template(
-                "account.html",
-                error="Ο κωδικός πρέπει να περιέχει τουλάχιστον 6 χαρακτήρες!",
-                register=True,
-            )
+            flash("Password must be at least 6 characters long!", "error")
+            return redirect(url_for("myAccount"))
         else:
             hashed_pass = generate_password_hash(new_password)
     else:
         hashed_pass = user[3]
 
-    database.updateUser(session["user"], new_username, new_email, hashed_pass)
+    database.updateUser(old_username, new_username, new_email, hashed_pass)
 
-    updated_user = database.selectUser(new_username)
-
-    print(f"Updated user: {updated_user}")
-
-    online_user = {
-        "username": updated_user[1],
-        "email": updated_user[2],
-        "level": 3,
-        "xp": 320,
-        "quiz_count": 4,
-        "role": "student",
-    }
-
-    session["user"] = online_user.get("username")
+    session["user"] = new_username
     flash("Changes saved successfully!", "success")
 
-    # ✅ Redirect στη σελίδα λογαριασμού
-    return render_template(
-        "student_account.html", user=online_user, role=session["role"]
-    )
+    return redirect(url_for("myAccount"))
 
 
 @app.route("/create")
@@ -401,8 +464,6 @@ def save_quiz():
             )
 
         quiz = Quiz(quizTitle, quizLesson)
-
-        print(request.form)
 
         try:
             # Εισαγωγή του κουίζ στη βάση
@@ -459,12 +520,8 @@ def save_quiz():
                     matchingItems = []
                     matchingNum = 1
                     while f"matching_{questionNum}_{matchingNum}" in request.form:
-                        print("INSIDE WHILE LOOP IN MATCHING")
                         matching_item = request.form.get(
                             f"matching_{questionNum}_{matchingNum}"
-                        )
-                        print(
-                            f"Matching num: {matchingNum}, Matching Item: {matching_item}"
                         )
                         matchingItems.append(matching_item)
                         matchingNum += 1
@@ -493,7 +550,6 @@ def save_quiz():
                 questionNum += 1
 
             notification_msg = f"New quiz created: {quizTitle}"
-            print(notification_msg)
             target_role = "student"
             database.createNotification(
                 notification_msg, session["user"], target_role, quiz_id, "teacher"
@@ -583,8 +639,6 @@ def view_quiz(quiz_id):
             for q in questions
         ],
     }
-
-    print(quiz_data)
 
     return render_template("view_quiz.html", user=session["user"], quiz=quiz_data)
 
@@ -834,26 +888,141 @@ def play_quiz(quiz_id):
         "id": quiz["id"],
         "title": quiz["title"],
         "lesson": quiz["lesson"],
-        "questions": [
-            {
-                "id": q["id"],
-                "question_text": q["question_text"],
-                "question_type": q["question_type"],
-                "options": [q["option_1"], q["option_2"], q["option_3"], q["option_4"]],
-                "correct_answer": q["correct_answer"],
-            }
-            for q in questions
-        ],
+        "questions": [],
     }
 
-    print(quiz_data)
+    for q in questions:
+        question_data = {
+            "id": q["id"],
+            "question_text": q["question_text"],
+            "question_type": q["question_type"],
+            "options": [q["option_1"], q["option_2"], q["option_3"], q["option_4"]],
+            "correct_answer": q["correct_answer"],
+        }
+
+        # ➕ μόνο αν είναι matching
+        if q["question_type"] == "matching":
+            question_data["matching_pairs"] = database.getMatchingItems(q["id"])
+
+        quiz_data["questions"].append(question_data)
 
     return render_template(
         "play_quiz.html", user=session["user"], quiz=quiz_data, role=session["role"]
     )
 
 
-@app.route("/my_achievements")
+@app.route("/quiz_summary_data", methods=["POST"])
+def quiz_summary_data():
+    if "user" not in session or session["role"] != "student":
+        return redirect(url_for("login"))
+
+    data = request.get_json()
+    sid = database.getStudentInfo(session["user"])[0]
+    quiz_id = data.get("quiz_id")
+
+    score = data["score"]
+    correct = data["correct"]
+    xp_earned = score // 10 + correct * 2
+
+    connection = database.getConnection()
+    cursor = connection.cursor()
+
+    # Ενημέρωση XP του μαθητή
+    cursor.execute("SELECT xp FROM students WHERE sid = ?", (sid,))
+    current_xp = cursor.fetchone()[0]
+    new_xp = current_xp + xp_earned
+    cursor.execute("UPDATE students SET xp = ? WHERE sid = ?", (new_xp, sid))
+
+    # Υπολογισμός αριθμού spins
+    cursor.execute(
+        "SELECT COALESCE(MAX(total_spins), 0) + 1 FROM quiz_results WHERE sid = ? AND quiz_id = ?",
+        (sid, quiz_id),
+    )
+    total_spins = cursor.fetchone()[0]
+
+    connection.commit()
+    connection.close()
+
+    # Αποθήκευση αποτελέσματος
+    quiz_result_id = database.save_quiz_result(
+        sid=sid,
+        quiz_id=quiz_id,
+        score=score,
+        correct=correct,
+        total=data["total"],
+        xp=new_xp,
+        time_taken=data["totalTime"],
+        total_spins=data["total_spins"],
+    )
+
+    # Αποθήκευση απαντήσεων
+    for entry in data["answers"]:
+        q = entry["question"]
+        user_ans = entry["userResponse"]
+        if isinstance(user_ans, list):
+            user_ans = json.dumps(user_ans)
+
+        database.save_student_answer(
+            quiz_result_id=quiz_result_id,
+            sid=sid,
+            quiz_id=quiz_id,
+            question_id=q["id"],
+            user_answer=user_ans,
+            is_correct=entry["correct"],
+        )
+
+    return "", 204
+
+
+@app.route("/quiz_summary/<int:quiz_id>")
+def quiz_summary(quiz_id):
+    if "user" not in session:
+        return redirect(url_for("login"))
+
+    sid = database.getStudentInfo(session["user"])[0]
+    summary = database.get_quiz_summary(sid, quiz_id)
+
+    if not summary:
+        flash("Δεν βρέθηκε σύνοψη για αυτό το quiz", "error")
+        return redirect(url_for("dashboard"))
+
+    # Ανάλυση matching απαντήσεων
+    for ans in summary["answers"]:
+        if isinstance(ans["user_answer"], str) and ans["user_answer"].startswith("["):
+            try:
+                ans["user_answer"] = json.loads(ans["user_answer"])
+            except json.JSONDecodeError:
+                ans["user_answer"] = []
+
+    return render_template("quiz_summary.html", summary=summary)
+
+
+@app.route("/my_quizzes")
+def my_quizzes():
+    if "user" not in session:
+        return redirect(url_for("login"))
+
+    sid = database.getStudentInfo(session["user"])[0]
+    conn = database.getConnection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT q.id, q.title, r.score, r.correct_answers, r.total_questions, r.time_taken, r.xp_earned, r.completed_at
+        FROM quiz_results r
+        JOIN quiz q ON q.id = r.quiz_id
+        WHERE r.sid = ?
+        ORDER BY r.completed_at DESC
+    """,
+        (sid,),
+    )
+    quizzes = cursor.fetchall()
+    conn.close()
+
+    return render_template("my_quizzes.html", quizzes=quizzes)
+
+
+@app.route("/achievements")
 def my_achievements():
     achievements = [
         {

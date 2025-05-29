@@ -1,313 +1,314 @@
-/* Κεντρικό κοντέινερ */
-.container {
-    display: flex;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-}
-
-/* ==================== */
-/* SIDEBAR              */
-/* ==================== */
-.sidebar {
-    width: 250px;
-    height: 100vh;
-    background-color: #1c4857;
-    padding: 20px;
-    position: fixed;
-    top: 0;
-    left: 0;
-    color: white;
-    display: flex;
-    flex-direction: column;
-    align-items: center; /* logo κεντραρισμένο */
-}
-
-.sidebar-header {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 30px;
-}
-
-.logo-link {
-    display: block;
-}
-
-.logo {
-    width: 100px; /* Σωστό μέγεθος */
-    height: auto;
-    max-width: 100%;
-    object-fit: contain;
-    transition: transform 0.3s ease;
-}
-
-.logo:hover {
-    transform: scale(1.05);
-}
-
-.sidebar ul {
-    list-style: none;
+/* ================================= */
+/*          BODY SECTION           */
+/* ================================= */
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #f3f4f6;
+    margin: 0;
     padding: 0;
-    margin-top: 30px;
-    width: 100%;
 }
 
-.sidebar ul li {
-    margin: 20px 0;
-    width: 100%;
+.account-container {
+    max-width: 1000px;
+    margin: 40px auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    padding: 30px;
 }
 
-.sidebar ul li a {
-    text-decoration: none;
-    color: white;
-    font-size: 18px;
-    padding: 10px 15px;
-    display: block;
-    border-radius: 8px;
-    transition: background 0.3s, color 0.3s;
-    text-align: left;
-}
-
-.sidebar ul li a:hover,
-.sidebar ul li a.active {
-    background-color: #ffd166;
-    color: #1c4857;
-}
-
-.profile-section {
-    text-align: center;
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 20px;
 }
 
 .avatar {
-    width: 200px;
-    height: 200px;
+    width: 100px;
+    height: 100px;
     border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #118AB2;
 }
 
-.side-profile {
-    margin-top: 40px;
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
-
-.profile-section h2 {
-    font-size: 24px;
-    margin: 10px 0;
-}
-
-.profile-section p {
-    color: #888;
-}
-
-.upload-photo-btn {
-    margin-top: 15px;
-    padding: 10px 20px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
-
-.upload-photo-btn:hover {
-    background-color: #0056b3;
-}
-
-/* Λίστα Στοιχείων */
-.details-list {
-    list-style-type: none;
-    padding: 0;
-    margin-top: 20px;
-}
-
-.details-list li {
-    padding: 10px;
-    border-bottom: 1px solid #ddd;
-}
-
-.details-list li a {
-    text-decoration: none;
-    color: #333;
-    font-weight: bold;
-}
-
-/* Κύριο Περιεχόμενο */
-.main-content {
-    flex: 2;
-    margin-left: 20px;
-}
-
-.quiz-details {
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
-
-.quiz-details h2 {
-    font-size: 28px;
+.info-group {
     margin-bottom: 20px;
 }
 
-.quiz-info p {
-    font-size: 18px;
-    margin: 10px 0;
-}
-
-.actions {
-    margin-top: 20px;
-}
-
-.create-quiz-btn {
-    padding: 10px 20px;
-    font-size: 16px;
-    background-color: #28a745;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
-
-.create-quiz-btn:hover {
-    background-color: #218838;
-}
-
-/* Στυλ για το Modal */
-.modal {
-    display: none;  /* Αρχικά το modal είναι κρυφό */
-    position: fixed;
-    z-index: 3; /* Στην κορυφή της σελίδας */
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgb(0,0,0); /* Μαύρο φόντο */
-    background-color: rgba(0,0,0,0.4); /* Διαφάνεια */
-    padding-top: 60px;
-}
-
-/* Στυλ για το περιεχόμενο του Modal */
-.modal-content {
-    background-color: #fefefe;
-    margin: 5% auto;
-    padding: 20px;
-    border: 1px solid #888;
-    width: 80%;
-    max-width: 500px;
-    border-radius: 8px;
-}
-
-/* Κουμπί κλεισίματος */
-.close {
-    color: #aaa;
-    float: right;
-    font-size: 28px;
+.info-group label {
     font-weight: bold;
 }
 
-.close:hover,
-.close:focus {
-    color: black;
-    text-decoration: none;
-    cursor: pointer;
+.info-group p {
+    margin: 5px 0 0;
 }
 
-/* Στυλ για τη φόρμα του Modal */
+canvas {
+    max-width: 100%;
+}
+
+.edit-btn {
+    background-color: #118AB2;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.edit-btn:hover {
+    background-color: #0d6d9b;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.6);
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.modal-content {
+    background-color: #fff;
+    padding: 2rem;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    position: relative;
+}
+
+/* Close button */
+.modal-content .close {
+    position: absolute;
+    top: 10px;
+    right: 16px;
+    font-size: 22px;
+    cursor: pointer;
+    font-weight: bold;
+    color: #444;
+}
+
+.modal-content h2 {
+    margin-bottom: 20px;
+    font-size: 1.4rem;
+}
+
+/* Form layout */
 .modal-content form {
     display: flex;
     flex-direction: column;
+    gap: 15px;
 }
 
 .modal-content label {
-    margin-bottom: 8px;
     font-weight: bold;
+    margin-bottom: 5px;
 }
 
 .modal-content input {
-    margin-bottom: 15px;
     padding: 10px;
-    border-radius: 4px;
+    border-radius: 8px;
     border: 1px solid #ccc;
+    font-size: 16px;
 }
 
+.modal-content input:focus {
+    border-color: #118AB2;
+    outline: none;
+    box-shadow: 0 0 6px rgba(17, 138, 178, 0.4);
+}
+
+/* Save button */
 .save-btn {
-    padding: 10px;
-    background-color: #28a745;
+    background: linear-gradient(to right, #06b6d4, #3b82f6);
     color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.save-btn:hover {
-    background-color: #218838;
-}
-
-/* Κοινό Στυλ για τα Κουμπιά */
-button, .create-quiz-btn, .upload-photo-btn, .view-history {
-    padding: 12px 25px;
+    padding: 12px;
     font-size: 16px;
     font-weight: bold;
     border: none;
-    border-radius: 5px;
+    border-radius: 25px;
     cursor: pointer;
-    text-transform: uppercase;  /* Όλα τα γράμματα κεφαλαία */
-    transition: all 0.3s ease;  /* Εφέ μετάβασης */
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);  /* Ελαφριά σκιά */
-}
-
-/* Στυλ για το κουμπί "Edit my personal information" */
-#edit-info-btn {
-    background-color: #007bff; /* Μπλε χρώμα */
-    color: white;
-}
-
-#edit-info-btn:hover {
-    background-color: #0056b3;  /* Σκούρο μπλε όταν είναι hover */
-    transform: translateY(-2px);  /* Ελαφριά κίνηση ανύψωσης */
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);  /* Εντονότερη σκιά όταν hover */
-}
-
-#edit-info-btn:focus {
-    outline: none;
-    box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.5);  /* Σκούρο μπλε outline όταν έχει εστίαση */
-}
-
-/* Στυλ για τα κουμπιά "Upload photo" και "Create new quiz" */
-.upload-photo-btn, .create-quiz-btn, .view-history {
-    background-color: #28a745; /* Πράσινο χρώμα */
-    color: white;
-}
-
-.upload-photo-btn:hover, .create-quiz-btn:hover, .view-history:hover {
-    background-color: #218838;  /* Σκούρο πράσινο όταν είναι hover */
-    transform: translateY(-2px);  /* Ελαφριά κίνηση ανύψωσης */
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);  /* Εντονότερη σκιά όταν hover */
-}
-
-.upload-photo-btn:focus, .create-quiz-btn:focus, .view-history:focus {
-    outline: none;
-    box-shadow: 0 0 0 4px rgba(40, 167, 69, 0.5);  /* Πράσινο outline όταν έχει εστίαση */
-}
-
-/* Στυλ για το κουμπί "Save Changes" */
-.save-btn {
-    background-color: #007bff; /* Μπλε χρώμα */
-    color: white;
+    transition: background-color 0.3s ease;
 }
 
 .save-btn:hover {
-    background-color: #0056b3;  /* Σκούρο μπλε όταν είναι hover */
-    transform: translateY(-2px);  /* Ελαφριά κίνηση ανύψωσης */
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);  /* Εντονότερη σκιά όταν hover */
+    background-color: #0d6d9b;
 }
 
-.save-btn:focus {
-    outline: none;
-    box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.5);  /* Σκούρο μπλε outline όταν έχει εστίαση */
+
+.flash-messages {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+}
+
+.flash {
+    padding: 12px 20px;
+    border-radius: 8px;
+    color: white;
+    margin-bottom: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    animation: fadeIn 0.4s ease;
+    font-weight: 600;
+}
+
+.flash.success {
+    background-color: #06d6a0;
+}
+
+.flash.error {
+    background-color: #ef476f;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.progress-section {
+    width: 100%;
+    max-width: 1000px;
+    margin: 40px auto 60px;
+    background-color: #fff;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.progress-section h3 {
+    margin-bottom: 20px;
+    color: #333;
+    text-align: center;
+}
+
+
+/* Responsive */
+@media (max-width: 768px) {
+    .account-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .account-container>div {
+        width: 100%;
+    }
+
+    .tabs {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .tab {
+        width: 100%;
+        text-align: center;
+    }
+
+    .progress-section {
+        padding: 1rem;
+        margin: 20px 0;
+    }
+}
+
+.info-panel {
+    max-width: 1000px;
+    margin: 40px auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+}
+
+/* Quiz list section for teachers */
+.quiz-list-section {
+    margin-top: 30px;
+}
+
+.quiz-list {
+    display: flex;
+    flex-direction: row;
+    list-style: none;
+    padding-left: 0;
+    gap: 20px;
+}
+
+.quiz-list li {
+    background: #f9fafb;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.quiz-list li span {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.xp-bar {
+    width: 100%;
+    height: 16px;
+    background-color: #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+.xp-fill {
+    height: 100%;
+    background-color: #ffd166;
+    transition: width 0.4s ease;
+}
+
+.quiz-section {
+    margin-top: 40px;
+    padding: 20px;
+    background: #fafafa;
+    border-radius: 16px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
+}
+
+.quiz-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.quiz-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.quiz-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.quiz-card.done {
+    border-left: 6px solid #06d6a0;
 }

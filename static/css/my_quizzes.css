@@ -1,0 +1,127 @@
+/* ================================= */
+/*          SIDEBAR                 */
+/* ================================= */
+.sidebar {
+    width: 250px;
+    height: 100vh;
+    background-color: #1c4857;
+    padding: 20px;
+    color: white;
+    position: fixed;
+    left: 0;
+    top: 0;
+}
+
+.sidebar-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.logo {
+    width: 100px;
+}
+
+.menu {
+    list-style: none;
+    padding: 0;
+}
+
+.menu li {
+    margin: 20px 0;
+}
+
+.menu li a {
+    text-decoration: none;
+    color: white;
+    font-size: 18px;
+    display: block;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: background 0.3s, color 0.3s;
+}
+
+.menu li a:hover {
+    background-color: #ffd166;
+    color: #1c4857;
+}
+
+/* Active link styling */
+.menu li a.active {
+    background-color: #ffd166;
+    color: #1c4857;
+}
+
+/* ================================= */
+/*              BODY                 */
+/* ================================= */
+
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #f0f4f8;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+h2 {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #073b4c;
+}
+
+.quiz-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+}
+
+.quiz-table th,
+.quiz-table td {
+    padding: 14px 18px;
+    text-align: center;
+    border-bottom: 1px solid #ddd;
+}
+
+.quiz-table thead {
+    background-color: #1c4857;
+    color: white;
+}
+
+.quiz-table tbody tr:hover {
+    background-color: #e0f7fa;
+    transition: background-color 0.2s ease;
+}
+
+.summary-link {
+    text-decoration: none;
+    color: #118ab2;
+    font-weight: bold;
+}
+
+.summary-link:hover {
+    text-decoration: underline;
+}
+
+th {
+    cursor: pointer;
+    user-select: none;
+}
+
+.sort-indicator {
+    font-size: 14px;
+    margin-left: 6px;
+    color: #ffffff;
+    transition: color 0.2s ease;
+}
+
+th:hover .sort-indicator {
+    color: #118ab2;
+}

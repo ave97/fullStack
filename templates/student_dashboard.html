@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Student Dashboard | EduPlay</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/student_dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
     <script defer src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
     <script defer src="{{ url_for('static', filename='js/daily-spin.js') }}"></script>
 </head>
@@ -20,6 +21,7 @@
         <ul class="menu">
             <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
             <li><a href="{{ url_for('myAccount') }}">My Account</a></li>
+            <li><a href="{{ url_for('my_quizzes') }}">Completed Quizzes</a></li>
             <li><a href="{{ url_for('my_achievements') }}">Achievements</a></li>
             <li><a href="{{ url_for('logout') }}">Logout</a></li>
         </ul>
@@ -37,12 +39,11 @@
                 <div class="level-info">
                     <p><strong>Level:</strong> {{ level_data.level }}</p>
                     <p><strong>XP:</strong> {{ level_data.current_xp }} / {{ level_data.required_xp }} XP</p>
-                    <p><strong>Remaining:</strong> {{ level_data.required_xp - level_data.current_xp }} XP to reach the
-                        next level</p>
                     <div class="xp-bar">
                         <div class="xp-fill"
                             style="width: {{ (level_data.current_xp / level_data.required_xp) * 100 }}%;"></div>
                     </div>
+                    <p><strong>Remaining:</strong> {{ level_data.remaining_xp }} XP to reach the next level</p>
                 </div>
             </div>
 
@@ -58,7 +59,7 @@
                     {% endfor %}
                 </ul>
                 {% else %}
-                <p>No quizzes available right now. Check back later!</p>
+                <p>You have completed all quizzes!</p>
                 {% endif %}
             </div>
 
@@ -90,16 +91,18 @@
         </div>
 
         <div class="extras-section">
-            <div class="leaderboard">
-                <h2>🏆 Leaderboard</h2>
-                <ol class="leaderboard-list">
-                    {% for player in leaderboard %}
+            <div class="recent-quizzes">
+                <h2>📚 Recent Quizzes</h2>
+                <ul class="recent-quiz-list">
+                    {% for quiz in recent_quizzes %}
                     <li>
-                        <span class="player-name">{{ player.name }}</span>
-                        <span class="player-score">{{ player.score }} pts</span>
+                        <span class="quiz-title">{{ quiz[0] }}</span>
+                        <span class="quiz-score">{{ quiz[1] }} pts</span>
                     </li>
+                    {% else %}
+                    <li>No quizzes taken yet.</li>
                     {% endfor %}
-                </ol>
+                </ul>
             </div>
 
             <div class="card">
@@ -119,13 +122,18 @@
                 <h2>📈 Your Insights</h2>
                 <div class="insight-item">
                     <h4>Quizzes Played</h4>
-                    <p>{{ insights.quizzes_played }}</p>
+                    <p class="animated-number" data-target="{{ insights.quizzes_played }}">0</p>
                 </div>
                 <div class="insight-item">
                     <h4>Correct Answer Rate</h4>
-                    <p>{{ insights.correct_rate }}%</p>
+                    <p class="animated-number" data-target="{{ insights.correct_rate }}">0%</p>
                 </div>
             </div>
+        </div>
+        <div class="chart-container fade-in">
+            <h2>Success Rate per Subject</h2>
+            <p class="chart-subtitle">Based on your answers across each lesson</p>
+            <canvas id="xpChart"></canvas>
         </div>
     </div>
 
@@ -163,6 +171,13 @@
             <p id="resultMessage"></p>
         </div>
     </div>
+
+    <script>
+        const chartData = {{ chart_data | tojson }};
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='js/xp_chart.js') }}"></script>
+
 </body>
 
 </html>

@@ -18,8 +18,8 @@
         </div>
         <ul class="menu">
             <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-            <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
             <li><a href="{{ url_for('myAccount') }}">My Account</a></li>
+            <li><a href="{{ url_for('my_quizzes') }}">Completed Quizzes</a></li>
             <li><a href="{{ url_for('my_achievements') }}">Achievements</a></li>
             <li><a href="{{ url_for('logout') }}">Logout</a></li>
         </ul>
@@ -31,15 +31,15 @@
 
     <div class="achievements-container">
         {% for achievement in achievements %}
-            <div class="achievement-card {% if not achievement.earned %}locked{% endif %}">
-                <h2>{{ achievement.name }}</h2>
-                <p>{{ achievement.description }}</p>
-                {% if achievement.earned %}
-                    <p class="date-earned">Earned on: {{ achievement.date_earned }}</p>
-                {% else %}
-                    <div class="locked-overlay">🔒 Locked</div>
-                {% endif %}
-            </div>
+        <div class="achievement-card {% if not achievement.earned %}locked{% endif %}">
+            <h2>{{ achievement.name }}</h2>
+            <p>{{ achievement.description }}</p>
+            {% if achievement.earned %}
+            <p class="date-earned">Earned on: {{ achievement.date_earned }}</p>
+            {% else %}
+            <div class="locked-overlay">🔒 Locked</div>
+            {% endif %}
+        </div>
         {% endfor %}
     </div>
 </body>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Quiz Summary</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/quiz_summary.css') }}">
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>🎉 Quiz Summary</h2>
+        <p>Final Score: {{ summary.score }}</p>
+        <p>XP Earned: {{ summary.xp }}</p>
+        <p>Time Taken: {{ summary.time_taken // 60 }}:{{ '%02d' % (summary.time_taken % 60) }}</p>
+        <p>Correct Answers: {{ summary.correct }} / {{ summary.total }}</p>
+        <p>Total Spins: {{ summary.total_spins }}</p>
+        <hr>
+        <h3>Review</h3>
+
+        {% for a in summary.answers %}
+        <div class="answer-block">
+            <p><strong>Q{{ loop.index }}:</strong> {{ a.question_text }}</p>
+            <p>Your Answer:
+                {% if a.question_type == 'matching' %}
+                {{ a.user_answer | map(attribute='left') | join(', ') }} →
+                {{ a.user_answer | map(attribute='right') | join(', ') }}
+                {% else %}
+                {{ a.user_answer }}
+                {% endif %}
+            </p>
+            <p class="{% if a.is_correct %}correct{% else %}wrong{% endif %}">
+                {{ "✅ Correct" if a.is_correct else "❌ Incorrect" }}
+            </p>
+            <hr>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="back-btn-container">
+        <a href="{{ url_for('dashboard') }}" class="back-btn">Back to Dashboard</a>
+    </div>
+
+</body>
+
+</html>

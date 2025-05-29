@@ -40,7 +40,6 @@ def createStudentsDB():
         sid TEXT UNIQUE NOT NULL,
         user_id INTEGER NOT NULL,
         xp INTEGER DEFAULT 0,
-        level INTEGER DEFAULT 1,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
         """
@@ -130,24 +129,26 @@ def createMatchingDB():
     connection.close()
 
 
-def createAnsweredQuizDB():
+# Quiz Results
+def createQuizResultsDB():
     connection = getConnection()
     cursor = connection.cursor()
     cursor.execute(
         """
-        CREATE TABLE IF NOT EXISTS quiz_answers (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            quiz_id INTEGER NOT NULL,
-            student_id INTEGER NOT NULL,
-            answer TEXT,
-            submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (quiz_id) REFERENCES quiz(id) ON DELETE CASCADE,
-            FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+        CREATE TABLE IF NOT EXISTS quiz_results (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        quiz_id INTEGER NOT NULL,
+        sid INTEGER NOT NULL,
+        score INTEGER NOT NULL,
+        correct_answers INTEGER NOT NULL,
+        time_taken INTEGER NOT NULL,
+        xp_earned INTEGER NOT NULL,
+        completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (quiz_id) REFERENCES quiz(id) ON DELETE CASCADE,
+        FOREIGN KEY (sid) REFERENCES students(sid) ON DELETE CASCADE
         );
         """
     )
-    connection.commit()
-    connection.close()
 
 
 # Notifications
@@ -225,6 +226,58 @@ def createActiveBonusDB():
     connection.close()
 
 
+# Quiz Answers
+def createQuizResultsDB():
+    connection = getConnection()
+    cursor = connection.cursor()
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS quiz_results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sid INTEGER NOT NULL,
+            quiz_id INTEGER NOT NULL,
+            score INTEGER NOT NULL,
+            correct_answers INTEGER,
+            total_questions INTEGER,
+            xp_earned INTEGER,
+            time_taken INTEGER,
+            total_spins INTEGER,
+            completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (sid) REFERENCES students(sid) ON DELETE CASCADE,
+            FOREIGN KEY (quiz_id) REFERENCES quiz(id) ON DELETE CASCADE
+        );
+        """
+    )
+    connection.commit()
+    connection.close()
+
+
+# Δημιουργία πίνακα student_answers
+def createStudentAnswersDB():
+    connection = getConnection()
+    cursor = connection.cursor()
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS student_answers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            quiz_result_id INTEGER NOT NULL,
+            sid INTEGER NOT NULL,
+            quiz_id INTEGER NOT NULL,
+            question_id INTEGER NOT NULL,
+            user_answer TEXT NOT NULL,
+            is_correct BOOLEAN NOT NULL,
+            answered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (quiz_result_id) REFERENCES quiz_results(id) ON DELETE CASCADE,
+            FOREIGN KEY (sid) REFERENCES students(sid) ON DELETE CASCADE,
+            FOREIGN KEY (quiz_id) REFERENCES quiz(id) ON DELETE CASCADE,
+            FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
+        );
+        """
+    )
+    connection.commit()
+    connection.close()
+
+
 # Achievements
 def createAchievementsDB():
     connection = getConnection()
@@ -284,12 +337,12 @@ def deleteUser():
 def drop():
     connection = getConnection()
     cursor = connection.cursor()
-    cursor.execute("DROP TABLE daily_spin")
-    cursor.execute("DROP TABLE active_bonus")
+    cursor.execute("DROP TABLE student_answers")
     connection.commit()
     connection.close()
 
 
+# Uncomment the following lines to create the necessary databases
 # drop()
 # createUsersDB()
 # createStudentsDB()
@@ -301,7 +354,9 @@ def drop():
 # createAnsweredQuizDB()
 # createNotficationsDB()
 # createDailySpinDB()
-# createActiveBonusDB()
+# # createActiveBonusDB()
+# createQuizResultsDB()
+# createStudentAnswersDB()
 
 
 def delete(i):
@@ -310,38 +365,3 @@ def delete(i):
     cursor.execute("DELETE FROM quiz WHERE id = ?", ((i,)))
     connection.commit()
     connection.close()
-
-
-def check_column_nullability():
-    conn = getConnection()
-    cursor = conn.cursor()
-
-    cursor.execute("PRAGMA table_info(questions);")
-
-    columns = cursor.fetchall()
-    print(f"Hey {len(columns)}")
-    for column in columns:
-        column_name = column[1]
-        is_nullable = "NULL" if column[3] == 0 else "NOT NULL"
-        print(f"Column: {column_name}, Nullability: {is_nullable}")
-
-    conn.close()
-
-
-# delete()
-
-
-# Κλήση της συνάρτησης
-# check_column_nullability()
-
-# def addPhotoProfileToUsersDB():
-#     connection = getConnection()
-#     cursor = connection.cursor()
-#     cursor.execute(
-#         """
-#         ALTER TABLE users
-#         ADD COLUMN photo_profile TEXT DEFAULT 'default_avatar.jpg';
-#         """
-#     )
-#     connection.commit()
-#     connection.close()
