@@ -1,14 +1,17 @@
-import os
+import os, json
 import time
 from flask import Flask, jsonify, send_file
 from google.cloud import texttospeech
 import sqlite3
+from google.oauth2 import service_account
+
 
 app = Flask(__name__)
 
 # Ρύθμιση credentials για Google Cloud TTS
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "tts_key.json"
-
+key_json = os.getenv("GOOGLE_CREDENTIALS")
+credentials_dict = json.loads(key_json)
+credentials = service_account.Credentials.from_service_account_info(credentials_dict)
 
 # === 1. Δημιουργία ή επαναχρήση .mp3 ===
 def generate_tts_audio_if_needed(text, filename):
