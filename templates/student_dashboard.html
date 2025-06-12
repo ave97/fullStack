@@ -12,6 +12,16 @@
 </head>
 
 <body>
+    <div class="flash-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </div>
+
     <div class="sidebar">
         <div class="sidebar-header">
             <a href="{{ url_for('home') }}" class="logo-link">
@@ -105,12 +115,12 @@
                 </ul>
             </div>
 
-            <div class="card">
+            <div class="card achievements wide-achievements">
                 <h2>Achievements</h2>
                 {% if achievements %}
                 <div class="badges">
                     {% for badge in achievements %}
-                    <div class="badge">{{ badge.name }}</div>
+                    <div class="badge" data-description="{{ badge.description | e }}">{{ badge.name }}</div>
                     {% endfor %}
                 </div>
                 {% else %}
@@ -118,8 +128,11 @@
                 {% endif %}
             </div>
 
+
             <div class="insights">
                 <h2>📈 Your Insights</h2>
+
+                {% if insights.quizzes_played > 0 %}
                 <div class="insight-item">
                     <h4>Quizzes Played</h4>
                     <p class="animated-number" data-target="{{ insights.quizzes_played }}">0</p>
@@ -128,13 +141,20 @@
                     <h4>Correct Answer Rate</h4>
                     <p class="animated-number" data-target="{{ insights.correct_rate }}">0%</p>
                 </div>
+                {% else %}
+                <p style="text-align: center;">You haven’t taken any quizzes yet. Start one to unlock insights!</p>
+                {% endif %}
             </div>
+
         </div>
+        {% if insights.quizzes_played > 0 and chart_data %}
         <div class="chart-container fade-in">
             <h2>Success Rate per Subject</h2>
             <p class="chart-subtitle">Based on your answers across each lesson</p>
             <canvas id="xpChart"></canvas>
         </div>
+        {% endif %}
+
     </div>
 
     <!-- Modal για το Spin -->
@@ -172,6 +192,15 @@
         </div>
     </div>
 
+    <script>
+        setTimeout(() => {
+            document.querySelectorAll(".flash").forEach(el => {
+                el.style.transition = "opacity 0.4s ease";
+                el.style.opacity = 0;
+                setTimeout(() => el.remove(), 400);
+            });
+        }, 5000);
+    </script>
     <script>
         const chartData = {{ chart_data | tojson }};
     </script>

@@ -127,3 +127,16 @@
 .removePairBtn:hover {
     background-color: #A91D1D;
 }
+
+.flex-box.right {
+    display: flex;
+    gap: 20px;
+}
+
+.sub-field {
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+    align-items: center;
+    gap: 10px;
+}

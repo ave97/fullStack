@@ -100,7 +100,7 @@ body {
 .flipper {
     position: relative;
     width: 100%;
-    min-height: 500px;
+    min-height: 750px;
     transform-style: preserve-3d;
     transition: transform 0.6s ease-in-out;
 }

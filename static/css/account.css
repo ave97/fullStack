@@ -1,6 +1,6 @@
-/* ================================= */
-/*          BODY SECTION           */
-/* ================================= */
+/* =============================== */
+/*          GLOBAL STYLES         */
+/* =============================== */
 body {
     font-family: 'Segoe UI', sans-serif;
     background-color: #f3f4f6;
@@ -8,14 +8,37 @@ body {
     padding: 0;
 }
 
-.account-container {
-    max-width: 1000px;
-    margin: 40px auto;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+/* =============================== */
+/*         MAIN LAYOUT            */
+/* =============================== */
+.main-content {
+    margin-left: 240px;
+    /* same as sidebar width */
     padding: 30px;
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+    min-height: 100vh;
+    background-color: #f3f4f6;
 }
+
+/* =============================== */
+/*         CARD CONTAINERS        */
+/* =============================== */
+.account-container,
+.info-panel {
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    padding: 30px;
+    flex: none;
+    width: 100%;
+    width: 1000px;
+    height: auto;
+}
+
 
 .profile-header {
     display: flex;
@@ -30,11 +53,20 @@ body {
     height: 100px;
     border-radius: 50%;
     object-fit: cover;
-    border: 3px solid #118AB2;
+    border: 3px solid #118ab2;
 }
 
+.user-info h4,
+.user-info p,
+.user-info small {
+    margin: 4px 0;
+}
+
+/* =============================== */
+/*         INFO GROUPS            */
+/* =============================== */
 .info-group {
-    margin-bottom: 20px;
+    margin-top: 20px;
 }
 
 .info-group label {
@@ -42,15 +74,56 @@ body {
 }
 
 .info-group p {
-    margin: 5px 0 0;
+    margin-top: 5px;
 }
 
-canvas {
+/* =============================== */
+/*         QUIZ LIST              */
+/* =============================== */
+.quiz-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding-left: 0;
+    list-style: none;
+}
+
+.quiz-list li {
+    flex: 1 1 calc(33, 33% - 20px);
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-width: 240px;
     max-width: 100%;
+    transition: transform 0.2s ease;
 }
 
+.quiz-list li:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+}
+
+.quiz-list li strong {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+    color: #118AB2;
+}
+
+.quiz-list li span {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+
+/* =============================== */
+/*         BUTTONS                */
+/* =============================== */
 .edit-btn {
-    background-color: #118AB2;
+    background-color: #118ab2;
     color: white;
     border: none;
     padding: 10px 20px;
@@ -64,71 +137,6 @@ canvas {
     background-color: #0d6d9b;
 }
 
-.modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background-color: rgba(0, 0, 0, 0.6);
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-}
-
-.modal-content {
-    background-color: #fff;
-    padding: 2rem;
-    border-radius: 12px;
-    width: 90%;
-    max-width: 500px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    position: relative;
-}
-
-/* Close button */
-.modal-content .close {
-    position: absolute;
-    top: 10px;
-    right: 16px;
-    font-size: 22px;
-    cursor: pointer;
-    font-weight: bold;
-    color: #444;
-}
-
-.modal-content h2 {
-    margin-bottom: 20px;
-    font-size: 1.4rem;
-}
-
-/* Form layout */
-.modal-content form {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.modal-content label {
-    font-weight: bold;
-    margin-bottom: 5px;
-}
-
-.modal-content input {
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-    font-size: 16px;
-}
-
-.modal-content input:focus {
-    border-color: #118AB2;
-    outline: none;
-    box-shadow: 0 0 6px rgba(17, 138, 178, 0.4);
-}
-
-/* Save button */
 .save-btn {
     background: linear-gradient(to right, #06b6d4, #3b82f6);
     color: white;
@@ -145,7 +153,64 @@ canvas {
     background-color: #0d6d9b;
 }
 
+/* =============================== */
+/*         MODAL STYLES           */
+/* =============================== */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.6);
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
 
+.modal-content {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    position: relative;
+}
+
+.modal-content .close {
+    position: absolute;
+    top: 10px;
+    right: 16px;
+    font-size: 22px;
+    cursor: pointer;
+    font-weight: bold;
+    color: #444;
+}
+
+.modal-content form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.modal-content input {
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+}
+
+.modal-content input:focus {
+    border-color: #118ab2;
+    outline: none;
+    box-shadow: 0 0 6px rgba(17, 138, 178, 0.4);
+}
+
+/* =============================== */
+/*         FLASH MESSAGES         */
+/* =============================== */
 .flash-messages {
     position: fixed;
     top: 20px;
@@ -183,132 +248,22 @@ canvas {
     }
 }
 
-.progress-section {
-    width: 100%;
-    max-width: 1000px;
-    margin: 40px auto 60px;
-    background-color: #fff;
-    padding: 2rem;
-    border-radius: 12px;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-}
-
-.progress-section h3 {
-    margin-bottom: 20px;
-    color: #333;
-    text-align: center;
-}
-
-
-/* Responsive */
+/* =============================== */
+/*         RESPONSIVENESS         */
+/* =============================== */
 @media (max-width: 768px) {
-    .account-container {
+    .main-content {
         flex-direction: column;
-        align-items: stretch;
+        margin-left: 240px;
     }
 
-    .account-container>div {
-        width: 100%;
-    }
-
-    .tabs {
+    .quiz-list {
         flex-direction: column;
-        align-items: center;
-    }
-
-    .tab {
-        width: 100%;
-        text-align: center;
-    }
-
-    .progress-section {
-        padding: 1rem;
-        margin: 20px 0;
     }
 }
 
-.info-panel {
-    max-width: 1000px;
-    margin: 40px auto;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    padding: 30px;
-}
-
-/* Quiz list section for teachers */
-.quiz-list-section {
-    margin-top: 30px;
-}
-
-.quiz-list {
-    display: flex;
-    flex-direction: row;
-    list-style: none;
-    padding-left: 0;
-    gap: 20px;
-}
-
-.quiz-list li {
-    background: #f9fafb;
-    padding: 12px 16px;
-    margin-bottom: 10px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    flex-direction: column;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.quiz-list li span {
-    font-size: 0.9rem;
-    color: #666;
-}
-
-.xp-bar {
-    width: 100%;
-    height: 16px;
-    background-color: #e0e0e0;
-    border-radius: 8px;
-    overflow: hidden;
-    margin-top: 10px;
-}
-
-.xp-fill {
-    height: 100%;
-    background-color: #ffd166;
-    transition: width 0.4s ease;
-}
-
-.quiz-section {
-    margin-top: 40px;
-    padding: 20px;
-    background: #fafafa;
-    border-radius: 16px;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
-}
-
-.quiz-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-    margin-top: 20px;
-}
-
-.quiz-card {
-    background: #fff;
-    border-radius: 12px;
-    padding: 16px;
-    text-align: center;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.quiz-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-}
-
-.quiz-card.done {
-    border-left: 6px solid #06d6a0;
+@media (max-width: 600px) {
+    .quiz-list li {
+        flex: 1 1 100%;
+    }
 }

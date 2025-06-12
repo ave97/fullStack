@@ -38,13 +38,15 @@
     padding: 8px 12px;
     border-radius: 6px;
     transition: background 0.3s, color 0.3s;
-    font-weight: 500; /* << ΣΤΑΘΕΡΟ για όλα */
-    white-space: nowrap; /* αποτρέπει σπάσιμο γραμμής */
 }
 
-.menu li a:hover,
+.menu li a:hover {
+    background-color: #ffd166;
+    color: #1c4857;
+}
+
+/* Active link styling */
 .menu li a.active {
     background-color: #ffd166;
     color: #1c4857;
-    font-weight: 500; /* Ίδιο με πριν = σταθερότητα */
 }

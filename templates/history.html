@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Quizzes | EduPlay</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/history.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script defer src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
     <script defer src="{{ url_for('static', filename='js/history.js') }}"></script>
 </head>
@@ -18,12 +19,13 @@
                 <img src="{{ url_for('static', filename='images/logo.webp') }}" class="logo" alt="EduPlay Logo">
             </a>
         </div>
-        <ul>
+        <ul class="menu">
             <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
             <li><a href="{{ url_for('myAccount') }}">My Account</a></li>
             <li><a href="{{ url_for('create_quiz') }}">Create Quiz</a></li>
             <li><a href="{{ url_for('history') }}" class="active">History</a></li>
-            <li>My Students</li>
+            <li><a href="{{ url_for('teacher_student_scores') }}">Student Scores</a></li>
+            <li><a href="{{ url_for('manage_students')}}">Students List</a></li>
             <li>Progress</li>
             <li><a href="{{ url_for('logout') }}">Log out</a></li>
         </ul>
@@ -64,7 +66,10 @@
                     <p class="created-at" data-created-at="{{ quiz['created_at'] }}"></p>
                     <p>Number of Questions: {{ quiz['numOfQuestions'] }}</p>
                     <p>Lesson: {{ quiz['lesson'] }}</p>
-                    <a href="{{ url_for('get_quiz', quiz_id=quiz['id']) }}" class="view-btn">📊 View Results</a>
+                    <p>Class: {{ quiz['target_class'] }}</p>
+                    <a href="{{ url_for('teacher_student_scores', quiz_id=quiz['id']) }}" class="view-btn">
+                        <i class="fa-solid fa-square-poll-vertical"></i> View Results
+                    </a>
                     <div class="quiz-card-edit">
                         <button class="quick-edit-btn" data-quiz-id="{{ quiz['id'] }}">Quick Edit</button>
                         <button class="edit-btn" data-quiz-id="{{ quiz['id'] }}">Edit</button>
@@ -96,10 +101,21 @@
                         <input type="text" id="quizTitle" name="quizTitle" required>
 
                         <label for="quizLesson">Quiz Lesson:</label>
-                        <input type="text" id="quizLesson" name="quizLesson" required>
+                        <select id="quizLesson" name="quizLesson" required>
+                            <option value="">Select Lesson</option>
+                            <option value="Math">Math</option>
+                            <option value="History">History</option>
+                            <option value="Science">Science</option>
+                            <option value="General">General</option>
+                        </select>
 
-                        <label for="quizDescription">Description:</label>
-                        <input type="textarea" id="quizDescription" name="quizDescription" required>
+                        <label for="quizClass">Class:</label>
+                        <select id="quizClass" name="quizClass" required>
+                            <option value="">Select Class</option>
+                            <option value="A">A</option>
+                            <option value="B">B</option>
+                            <option value="C">C</option>
+                        </select>
 
                         <div id="questionsContainer"></div>
 

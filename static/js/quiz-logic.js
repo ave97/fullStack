@@ -107,6 +107,11 @@ document.addEventListener('DOMContentLoaded', function () {
         title.style.fontSize = '22px';
         questionBox.appendChild(title);
 
+        const audio = document.getElementById("ttsAudio");
+        const filename = `quiz_${quizData.id}_question_${question.id}`;
+        audio.src = `/static/sounds/${filename}.mp3`;
+        audio.play();
+
         const wrapper = document.createElement('div');
         wrapper.classList.add('options-wrapper');
         questionBox.appendChild(wrapper);
@@ -183,6 +188,10 @@ document.addEventListener('DOMContentLoaded', function () {
             submitBtn.onclick = () => checkMatchingAnswer(matches, question.matching_pairs, question);
             questionBox.appendChild(submitBtn);
         }
+
+        setTimeout(() => {
+            questionBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
     }
 
     function setupMatchingLogic() {
@@ -255,10 +264,20 @@ document.addEventListener('DOMContentLoaded', function () {
         scoreDisplay.textContent = `Score: ${score}`;
         userAnswers.push({ question, correct: isCorrect, userResponse });
 
+        if (currentWinningSlice) {
+            currentWinningSlice.classList.remove('slice-blink', 'slice-pop');
+        }
+
         setTimeout(() => {
             scoreDisplay.classList.remove("bling", "win", "lose");
             currentQuestionIndex++;
             questionBox.innerHTML = '<div>Spin the wheel</div>';
+
+            document.getElementById('wheel-container').scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+
             if (currentQuestionIndex >= questions.length) endGame();
         }, 1500);
     }
@@ -287,10 +306,20 @@ document.addEventListener('DOMContentLoaded', function () {
         scoreDisplay.textContent = `Score: ${score}`;
         userAnswers.push({ question, correct: isAllCorrect, userResponse: givenMatches });
 
+        if (currentWinningSlice) {
+            currentWinningSlice.classList.remove('slice-blink', 'slice-pop');
+        }
+
         setTimeout(() => {
             scoreDisplay.classList.remove("bling", "win", "lose");
             currentQuestionIndex++;
             questionBox.innerHTML = '<div>Spin the wheel</div>';
+
+            document.getElementById('wheel-container').scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+
             if (currentQuestionIndex >= questions.length) endGame();
         }, 1500);
     }

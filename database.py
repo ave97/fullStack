@@ -35,7 +35,7 @@ def getStudentInfo(username):
         connection = getConnection()
         cursor = connection.cursor()
         cursor.execute(
-            "SELECT students.sid FROM users JOIN students on users.id = students.user_id WHERE users.username = ?",
+            "SELECT students.sid, students.class FROM users JOIN students on users.id = students.user_id WHERE users.username = ?",
             (username,),
         )
         student_info = cursor.fetchone()
@@ -97,8 +97,77 @@ def updateUser(old_username, username, email, password):
     return
 
 
-def deleteUser(username):
-    return
+def selectPendingTeacher(username):
+    connection = getConnection()
+    cursor = connection.cursor()
+    cursor.execute("SELECT * FROM pending_teachers WHERE username = ?", (username,))
+    result = cursor.fetchone()
+    connection.close()
+    return result
+
+
+def insertPendingTeacher(username, email, password):
+    connection = getConnection()
+    cursor = connection.cursor()
+    cursor.execute(
+        """
+        INSERT INTO pending_teachers (username, email, password)
+        VALUES (?, ?, ?)
+    """,
+        (username, email, password),
+    )
+    connection.commit()
+    connection.close()
+
+
+def approvePendingTeacher(pending_id):
+    connection = getConnection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT username, email, password FROM pending_teachers
+        WHERE id = ?
+    """,
+        (pending_id,),
+    )
+    row = cursor.fetchone()
+
+    if not row:
+        connection.close()
+        return False
+
+    username, email, password = row
+
+    cursor.execute(
+        """
+        INSERT INTO users (username, email, password, role)
+        VALUES (?, ?, ?, 'teacher')
+    """,
+        (username, email, password),
+    )
+
+    user_id = cursor.lastrowid
+
+    tid = generate_id("teacher")
+    cursor.execute(
+        """
+        INSERT INTO teachers (tid, user_id)
+        VALUES (?, ?)
+    """,
+        (tid, user_id),
+    )
+
+    cursor.execute(
+        """
+        DELETE FROM pending_teachers WHERE id = ?
+    """,
+        (pending_id,),
+    )
+
+    connection.commit()
+    connection.close()
+    return True
 
 
 # Στοχος να δημιουργηθει το sid ή tid αναλογα με τον ρολο του χρηστη, π.χ. st2501, αν ο χρηστης ειναι student, γραφτηκε το 2025 και ειναι ο πρωτος στη λιστα που γραφτηκε
@@ -116,7 +185,7 @@ def generate_id(role):
     return f"{prefix}{year_suffix}{count:02d}"
 
 
-def insertQuiz(quiz: Quiz, teacher: Teacher):
+def insertQuiz(quiz: Quiz, teacher: Teacher, target_class):
     title = quiz.getTitle()
     lesson = quiz.getLesson()
 
@@ -126,8 +195,8 @@ def insertQuiz(quiz: Quiz, teacher: Teacher):
         connection = getConnection()
         cursor = connection.cursor()
         cursor.execute(
-            "INSERT INTO quiz (title, lesson, created_by) VALUES (?, ?, ?)",
-            (title, lesson, tid),
+            "INSERT INTO quiz (title, lesson, created_by, target_class) VALUES (?, ?, ?, ?)",
+            (title, lesson, tid, target_class),
         )
 
         quiz_id = cursor.lastrowid  # για να παρουμε το τελευταιο id
@@ -163,6 +232,8 @@ def insertQuestion(quiz_id, question: Question):
 
     # Get the correct answer for all question types
     correctAnswer = question.getCorrectAnswer()
+
+    print(f"Correct answer is {correctAnswer}")
 
     # For matching questions, get the matching items if available
     matchingItems = question.getMatchingItems() if qType == "matching" else None
@@ -226,92 +297,6 @@ def insertQuestion(quiz_id, question: Question):
         conn.close()
 
 
-def createNotification(message, username, target_role, quiz_id, quiz_creator=None):
-    try:
-        connection = getConnection()
-        cursor = connection.cursor()
-
-        # Ανάκτηση του user_id για τον χρήστη που δημιουργεί την ειδοποίηση (π.χ. ο καθηγητής ή ο μαθητής)
-        cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
-        uid = cursor.fetchone()
-
-        if uid is None:
-            print(f"User with username {username} not found.")
-            return
-
-        user_id = uid[0]
-        created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-        # Δημιουργία ειδοποίησης στον πίνακα 'notifications'
-        cursor.execute(
-            "INSERT INTO notifications (message, type, quiz_id, created_at, created_by) VALUES (?, ?, ?, ?, ?)",
-            (message, "quiz_notification", quiz_id, created_at, user_id),
-        )
-        notification_id = cursor.lastrowid
-
-        # Αν target_role είναι "student", στέλνουμε την ειδοποίηση σε όλους τους μαθητές
-        if target_role == "student":
-            cursor.execute(
-                """
-                SELECT students.sid
-                FROM users
-                JOIN students ON users.id = students.user_id
-                WHERE users.role = 'student'
-                """,
-            )
-
-            student_ids = cursor.fetchall()
-            for student_id in student_ids:
-                cursor.execute(
-                    "INSERT INTO notification_seen (user_type, user_id, notification_id, seen) VALUES (?, ?, ?, ?)",
-                    ("student", student_id[0], notification_id, 0),
-                )
-
-        # Αν target_role είναι "teacher" στέλνουμε ειδοποίηση στον καθηγητή.
-        elif target_role == "teacher" and quiz_creator is not None:
-            cursor.execute("SELECT id FROM users WHERE username = ?", (quiz_creator,))
-            creator_id = cursor.fetchone()[0]
-
-            cursor.execute(
-                "INSERT INTO notification_seen (user_type, user_id, notification_id, seen) VALUES (?, ?, ?, ?)",
-                ("teacher", creator_id, notification_id, 0),
-            )
-
-        connection.commit()
-
-    except sqlite3.Error as error:
-        print(f"An error occurred in function createNotification: {error}")
-        connection.rollback()
-    finally:
-        connection.close()
-
-
-def getNotification(user_id):
-    try:
-        connection = getConnection()
-        cursor = connection.cursor()
-
-        # Φιλτράρουμε για ειδοποιήσεις που δεν έχουν δει οι χρήστες
-        cursor.execute(
-            """
-            SELECT notifications.*, notification_seen.seen 
-            FROM notifications
-            JOIN notification_seen 
-            ON notifications.id = notification_seen.notification_id
-            WHERE notification_seen.user_id = ? AND notification_seen.seen = 0
-            """,
-            (user_id,),
-        )
-
-        notification_data = cursor.fetchall()
-
-        return notification_data
-    except sqlite3.Error as error:
-        print(f"An error occurred in function getNotification: {error}")
-    finally:
-        connection.close()
-
-
 def getQuizById(quiz_id):
     connection = sqlite3.connect("eduplay.db")
     connection.row_factory = (
@@ -336,6 +321,15 @@ def getQuizByTitle(quiz_title):
     return quiz
 
 
+def getQuizTitle(quiz_id):
+    connection = getConnection()
+    cursor = connection.cursor()
+    cursor.execute("SELECT title FROM quiz WHERE id = ?", (quiz_id,))
+    row = cursor.fetchone()
+    connection.close()
+    return row[0] if row else None
+
+
 # get quizzes created by teacher id
 def getQuizzesByTeacher(tid):
     connection = getConnection()
@@ -344,7 +338,7 @@ def getQuizzesByTeacher(tid):
 
     cursor.execute(
         """
-        SELECT quiz.id, quiz.title, quiz.lesson, quiz.created_at, COUNT(questions.id) as numOfQuestions 
+        SELECT quiz.id, quiz.title, quiz.lesson, quiz.target_class, quiz.created_at, COUNT(questions.id) as numOfQuestions 
         FROM quiz 
         LEFT JOIN questions ON quiz.id = questions.quiz_id 
         WHERE quiz.created_by = ? 
@@ -359,28 +353,44 @@ def getQuizzesByTeacher(tid):
     return [dict(quiz) for quiz in quizzes]  # Μετατροπή κάθε Row σε dictionary
 
 
-def getLatestQuizzesByTeacher(tid):
+def getLatestQuizzesByTeacher(tid, limit=5):
+    query = """
+        SELECT 
+            q.id,
+            q.title,
+            q.lesson,
+            q.target_class,
+            q.created_at,
+            COUNT(qr.id) AS completions,
+            ROUND(AVG(qr.score), 1) AS avg_score
+        FROM quiz q
+        LEFT JOIN quiz_results qr ON q.id = qr.quiz_id
+        WHERE q.created_by = ?
+        GROUP BY q.id
+        ORDER BY q.created_at DESC
+        LIMIT ?
+    """
     connection = getConnection()
-    connection.row_factory = sqlite3.Row
     cursor = connection.cursor()
-
-    cursor.execute(
-        """
-        SELECT quiz.id, quiz.title, quiz.lesson, quiz.created_at, COUNT(questions.id) as numOfQuestions
-        FROM quiz
-        LEFT JOIN questions ON quiz.id = questions.quiz_id
-        WHERE quiz.created_by = ?
-        GROUP BY quiz.id
-        ORDER BY quiz.created_at DESC
-        LIMIT 3
-        """,
-        (tid,),
-    )
-
-    quizzes = cursor.fetchall()
+    cursor.execute(query, (tid, limit))
+    rows = cursor.fetchall()
     connection.close()
 
-    return [dict(quiz) for quiz in quizzes]
+    quizzes = []
+    for row in rows:
+        quizzes.append(
+            {
+                "id": row[0],
+                "title": row[1],
+                "lesson": row[2],
+                "class": row[3],
+                "created_at": row[4].split(" ")[0],
+                "completed_count": row[5],
+                "avg_score": row[6] if row[6] is not None else 0,
+            }
+        )
+
+    return quizzes
 
 
 # get quizzes by quiz_id
@@ -424,13 +434,13 @@ def deleteQuestionById(question_id):
         conn.close()
 
 
-def quickEditQuiz(quiz_id, title, lesson):
+def quickEditQuiz(quiz_id, title, lesson, target_class=None):
     try:
         connection = getConnection()
         cursor = connection.cursor()
         cursor.execute(
-            "UPDATE quiz SET title = ?, lesson = ? WHERE id = ?",
-            (title, lesson, quiz_id),
+            "UPDATE quiz SET title = ?, lesson = ?, target_class = ? WHERE id = ?",
+            (title, lesson, target_class, quiz_id),
         )
         connection.commit()
         print("Quiz updated successfully!")
@@ -485,17 +495,17 @@ def getMatchingItems(question_id):
 
 
 # Update Quiz function
-def updateQuiz(quiz_id, title, lesson):
+def updateQuiz(quiz_id, title, lesson, target_class):
     conn = getConnection()
     cursor = conn.cursor()
     try:
         cursor.execute(
             """
             UPDATE quiz
-            SET title = ?, lesson = ?
+            SET title = ?, lesson = ?, target_class = ?
             WHERE id = ?
         """,
-            (title, lesson, quiz_id),
+            (title, lesson, target_class, quiz_id),
         )
         conn.commit()
     except Exception as e:
@@ -517,6 +527,8 @@ def updateQuestion(
     option4=None,
     correctAnswer=None,
 ):
+    
+    print(f"Updating question {question_id} with text: {text}, type: {qtype}, options: {option1}, {option2}, {option3}, {option4}, correct answer: {correctAnswer}")
     conn = getConnection()
     cursor = conn.cursor()
     try:
@@ -575,16 +587,98 @@ def replaceMatchingPairs(question_id, matching_items):
         conn.close()
 
 
+def getAllStudents():
+    conn = getConnection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT s.id, u.username, s.class
+        FROM students s
+        JOIN users u ON s.user_id = u.id
+    """
+    )
+    result = cursor.fetchall()
+    conn.close()
+    return result
+
+
+def updateStudentClass(student_id, new_class):
+    conn = getConnection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE students SET class = ? WHERE id = ?", (new_class, student_id)
+    )
+    conn.commit()
+    conn.close()
+
+
+def getStudentsByTeacher(teacher_id):
+    conn = getConnection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT s.id, u.username, s.class
+        FROM students s
+        JOIN users u ON s.user_id = u.id
+        JOIN teacher_students ts ON ts.sid = s.id
+        WHERE ts.tid = ?
+    """,
+        (teacher_id,),
+    )
+    students = cursor.fetchall()
+    conn.close()
+    return students
+
+
+def getUnassignedStudents():
+    conn = getConnection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT s.id, u.username, s.class
+        FROM students s
+        JOIN users u ON s.user_id = u.id
+        LEFT JOIN teacher_students ts ON ts.sid = s.id
+        WHERE ts.sid IS NULL
+    """
+    )
+    result = cursor.fetchall()
+    conn.close()
+    return result
+
+
 # Save quiz result
-def save_quiz_result(sid, quiz_id, score, correct, total, xp, time_taken, total_spins):
+def save_quiz_result(
+    sid,
+    quiz_id,
+    score,
+    correct,
+    total,
+    xp,
+    time_taken,
+    total_spins,
+    base_xp,
+    bonus=None,
+):
     connection = getConnection()
     cursor = connection.cursor()
     cursor.execute(
         """
-        INSERT INTO quiz_results (sid, quiz_id, score, correct_answers, total_questions, xp_earned, time_taken, total_spins)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO quiz_results (sid, quiz_id, score, correct_answers, total_questions, xp_earned, time_taken, total_spins, bonus, base_xp)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (sid, quiz_id, score, correct, total, xp, time_taken, total_spins),
+        (
+            sid,
+            quiz_id,
+            score,
+            correct,
+            total,
+            xp,
+            time_taken,
+            total_spins,
+            bonus,
+            base_xp,
+        ),
     )
     quiz_result_id = cursor.lastrowid
     connection.commit()
@@ -617,7 +711,7 @@ def get_quiz_summary(sid, quiz_id):
     # Το πιο πρόσφατο αποτέλεσμα και το ID του
     cursor.execute(
         """
-            SELECT id, score, correct_answers, total_questions, xp_earned, time_taken, completed_at, total_spins
+            SELECT id, score, correct_answers, total_questions, xp_earned, time_taken, completed_at, total_spins, bonus, base_xp
             FROM quiz_results
             WHERE sid = ? AND quiz_id = ?
             ORDER BY completed_at DESC
@@ -631,9 +725,18 @@ def get_quiz_summary(sid, quiz_id):
         connection.close()
         return None
 
-    quiz_result_id, score, correct, total, xp, time_taken, completed_at, total_spins = (
-        result
-    )
+    (
+        quiz_result_id,
+        score,
+        correct,
+        total,
+        xp,
+        time_taken,
+        completed_at,
+        total_spins,
+        bonus,
+        base_xp,
+    ) = result
 
     # Απαντήσεις ΜΟΝΟ για αυτό το attempt
     cursor.execute(
@@ -668,7 +771,123 @@ def get_quiz_summary(sid, quiz_id):
             }
             for a in answers
         ],
+        "bonus": bonus,
+        "base_xp": base_xp,
     }
+
+
+def get_quiz_summary_extended(sid, quiz_id):
+    connection = getConnection()
+    cursor = connection.cursor()
+
+    # Πάρε το πιο πρόσφατο αποτέλεσμα κλπ
+    cursor.execute(
+        """
+            SELECT id, score, correct_answers, total_questions, xp_earned, time_taken, completed_at, total_spins
+            FROM quiz_results
+            WHERE sid = ? AND quiz_id = ?
+            ORDER BY completed_at DESC
+            LIMIT 1
+        """,
+        (sid, quiz_id),
+    )
+    result = cursor.fetchone()
+    if not result:
+        connection.close()
+        return None
+
+    quiz_result_id, score, correct, total, xp, time_taken, completed_at, total_spins = (
+        result
+    )
+
+    # Φόρτωσε απαντήσεις με τις επιλογές και σωστή απάντηση
+    cursor.execute(
+        """
+            SELECT sa.question_id, sa.user_answer, sa.is_correct, q.question_text, q.question_type,
+                   q.option_1, q.option_2, q.option_3, q.option_4, q.correct_answer
+            FROM student_answers sa
+            JOIN questions q ON sa.question_id = q.id
+            WHERE sa.quiz_result_id = ?
+        """,
+        (quiz_result_id,),
+    )
+    answers = cursor.fetchall()
+
+    # Φόρτωσε σωστά ζευγάρια για matching ερωτήσεις
+    cursor.execute(
+        """
+            SELECT question_id, item_1, item_2
+            FROM matching
+            WHERE question_id IN (
+                SELECT question_id FROM student_answers WHERE quiz_result_id = ?
+            )
+        """,
+        (quiz_result_id,),
+    )
+    matching_pairs_raw = cursor.fetchall()
+
+    # Οργάνωση matching ζευγαριών ανά question_id
+    matching_pairs = {}
+    for question_id, item_1, item_2 in matching_pairs_raw:
+        matching_pairs.setdefault(question_id, []).append(
+            {"item_1": item_1, "item_2": item_2}
+        )
+
+    connection.close()
+
+    answer_list = []
+    for a in answers:
+        correct_pos = a[9]
+        correct_text = None
+        if a[4] == "matching":
+            correct_text = matching_pairs.get(a[0], [])
+        else:
+            options = [a[5], a[6], a[7], a[8]]
+            try:
+                correct_pos_int = int(correct_pos)
+            except (ValueError, TypeError):
+                correct_pos_int = None
+
+            if correct_pos_int is not None and 1 <= correct_pos_int <= 4:
+                correct_text = options[correct_pos_int - 1]
+            else:
+                correct_text = None
+
+        user_answer = json.loads(a[1]) if a[4] == "matching" else a[1]
+
+        answer_list.append(
+            {
+                "question_id": a[0],
+                "user_answer": user_answer,
+                "is_correct": bool(a[2]),
+                "question_text": a[3],
+                "question_type": a[4],
+                "correct_answer": correct_text,
+            }
+        )
+
+    return {
+        "score": score,
+        "correct": correct,
+        "total": total,
+        "xp": xp,
+        "time_taken": time_taken,
+        "completed_at": completed_at,
+        "total_spins": total_spins,
+        "answers": answer_list,
+    }
+
+
+def getQuizTitleById(quiz_id):
+    connection = getConnection()
+    cursor = connection.cursor()
+    cursor.execute("SELECT title FROM quiz WHERE id = ?", (quiz_id,))
+    result = cursor.fetchone()
+    connection.close()
+
+    if result:
+        return result[0]
+    return None
 
 
 # Daily Spins
@@ -721,7 +940,7 @@ def getActiveBonuses(sid):
     cursor.execute(
         """
         SELECT bonus, end_date FROM active_bonus
-        WHERE sid = ? AND end_date > CURRENT_TIMESTAMP
+        WHERE sid = ? AND end_date > CURRENT_TIMESTAMP AND used = 0
         ORDER BY end_date ASC
         """,
         (sid,),
@@ -735,3 +954,504 @@ def getActiveBonuses(sid):
         formatted = expires_dt.strftime("%d/%m/%Y %H:%M")
         bonuses.append({"bonus": bonus_type, "expires": formatted})
     return bonuses
+
+
+def cleanExpiredBonuses(sid):
+    conn = getConnection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        DELETE FROM active_bonus
+        WHERE sid = ? AND used = 0 AND end_date < datetime('now')
+    """,
+        (sid,),
+    )
+    conn.commit()
+    conn.close()
+
+
+def use_bonus(sid, quiz_id):
+    conn = getConnection()
+    cursor = conn.cursor()
+
+    # Βρες το πιο παλιό ενεργό και μη χρησιμοποιημένο bonus
+    cursor.execute(
+        """
+        SELECT id FROM active_bonus
+        WHERE sid = ? AND used = 0 AND end_date > datetime('now')
+        ORDER BY end_date ASC
+        LIMIT 1
+        """,
+        (sid,),
+    )
+    row = cursor.fetchone()
+
+    if row:
+        bonus_id = row[0]
+        cursor.execute(
+            """
+            UPDATE active_bonus
+            SET used = 1,
+                used_for_qid = ?
+            WHERE id = ?
+            """,
+            (quiz_id, bonus_id),
+        )
+        conn.commit()
+
+    conn.close()
+
+
+def getNextActiveBonus(sid):
+    connection = getConnection()
+    cursor = connection.cursor()
+    now = datetime.now()
+
+    cursor.execute(
+        """
+        SELECT id, bonus FROM active_bonus
+        WHERE sid = ? AND end_date > ? AND used = 0
+        ORDER BY end_date ASC
+        LIMIT 1
+    """,
+        (sid, now),
+    )
+    result = cursor.fetchone()
+
+    connection.close()
+
+    if result:
+        return result[1]
+    return None
+
+
+def insertAchievement(title, description, xp, ach_type, target):
+    connection = getConnection()
+    cursor = connection.cursor()
+    cursor.execute(
+        """
+        INSERT INTO achievements (name, description, xp, type, target)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (title, description, xp, ach_type, target),
+    )
+    connection.commit()
+    connection.close()
+
+
+def getAllAchievements():
+    connection = getConnection()
+    cursor = connection.cursor()
+
+    cursor.execute("SELECT id, name, description, type, target, xp FROM achievements")
+    achievements = cursor.fetchall()
+
+    connection.close()
+    return achievements
+
+
+def deleteAchievement(achievement_id):
+    connection = getConnection()
+    cursor = connection.cursor()
+
+    cursor.execute("DELETE FROM achievements WHERE id = ?", (achievement_id,))
+
+    connection.commit()
+    connection.close()
+
+
+def update_achievement(id, title, description, xp, type_, target):
+    conn = getConnection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        UPDATE achievements
+        SET name = ?, description = ?, xp = ?, type = ?, target = ?
+        WHERE id = ?
+    """,
+        (title, description, xp, type_, target, id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_recently_unlocked_achievements(user_id):
+    connection = getConnection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT a.title
+        FROM achievements a
+        JOIN user_achievement_progress uap ON a.id = uap.achievement_id
+        WHERE uap.user_id = ? AND uap.unlocked = 1
+              AND DATE(uap.updated_at) = DATE('now')
+        ORDER BY uap.updated_at DESC
+    """,
+        (user_id,),
+    )
+
+    result = [row[0] for row in cursor.fetchall()]
+    connection.close()
+    return result
+
+
+def getUserAchievements(user_id):
+    conn = getConnection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT a.name, a.description, a.xp, a.type, a.target,
+               u.current_value, u.unlocked, u.updated_at
+        FROM achievements a
+        JOIN user_achievement_progress u ON u.achievement_id = a.id
+        WHERE u.user_id = ?
+    """,
+        (user_id,),
+    )
+
+    data = cursor.fetchall()
+    conn.close()
+
+    # Optional: mapping σε dict
+    achievements = []
+    for row in data:
+        achievements.append(
+            {
+                "name": row[0],
+                "description": row[1],
+                "xp": row[2],
+                "type": row[3],
+                "target": row[4],
+                "progress": row[5],
+                "unlocked": row[6],
+                "updated_at": row[7],
+            }
+        )
+
+    return achievements
+
+
+def track_progress(user_id, achievement_type, amount=1):
+    conn = getConnection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT id, name, target, xp
+        FROM achievements
+        WHERE type = ?
+        """,
+        (achievement_type,),
+    )
+    achievements = cursor.fetchall()
+
+    unlocked_titles = []
+
+    for achievement_id, title, target, xp_reward in achievements:
+        cursor.execute(
+            """
+            SELECT current_value, unlocked
+            FROM user_achievement_progress
+            WHERE user_id = ? AND achievement_id = ?
+            """,
+            (user_id, achievement_id),
+        )
+        result = cursor.fetchone()
+
+        if result:
+            current_value, unlocked = result
+            if unlocked:
+                continue
+
+            new_value = current_value + amount
+            if new_value >= target:
+                cursor.execute(
+                    """
+                    UPDATE user_achievement_progress
+                    SET current_value = ?, unlocked = 1, updated_at = CURRENT_TIMESTAMP
+                    WHERE user_id = ? AND achievement_id = ?
+                    """,
+                    (new_value, user_id, achievement_id),
+                )
+                # ➕ Πρόσθεσε XP
+                cursor.execute(
+                    """
+                    UPDATE students
+                    SET xp = xp + ?
+                    WHERE user_id = ?
+                    """,
+                    (xp_reward, user_id),
+                )
+                unlocked_titles.append(title)
+            else:
+                cursor.execute(
+                    """
+                    UPDATE user_achievement_progress
+                    SET current_value = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE user_id = ? AND achievement_id = ?
+                    """,
+                    (new_value, user_id, achievement_id),
+                )
+        else:
+            is_unlocked = 1 if amount >= target else 0
+            cursor.execute(
+                """
+                INSERT INTO user_achievement_progress
+                (user_id, achievement_id, current_value, unlocked)
+                VALUES (?, ?, ?, ?)
+                """,
+                (user_id, achievement_id, amount, is_unlocked),
+            )
+
+            if is_unlocked:
+                # ➕ Πρόσθεσε XP
+                cursor.execute(
+                    """
+                    UPDATE students
+                    SET xp = xp + ?
+                    WHERE user_id = ?
+                    """,
+                    (xp_reward, user_id),
+                )
+                unlocked_titles.append(title)
+
+    conn.commit()
+    conn.close()
+
+    return unlocked_titles
+
+
+def getUserAchievementProgress(user_id):
+    conn = getConnection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT achievement_id, current_value, unlocked, updated_at
+        FROM user_achievement_progress
+        WHERE user_id = ?
+    """,
+        (user_id,),
+    )
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    progress_map = {}
+    for row in rows:
+        progress_map[row[0]] = {
+            "current_value": row[1],
+            "unlocked": row[2],
+            "updated_at": row[3],
+        }
+
+    return progress_map
+
+
+def getUniqueStudentsForTeacher(tid):
+    query = """
+        SELECT COUNT(DISTINCT qr.sid)
+        FROM quiz_results qr
+        JOIN quiz q ON qr.quiz_id = q.id
+        WHERE q.created_by = ?
+    """
+    connection = getConnection()
+    cursor = connection.cursor()
+    cursor.execute(query, (tid,))
+    result = cursor.fetchone()[0]
+    connection.close()
+    return result or 0
+
+
+def getAverageScoreForTeacher(tid):
+    query = """
+        SELECT AVG(qr.score)
+        FROM quiz_results qr
+        JOIN quiz q ON qr.quiz_id = q.id
+        WHERE q.created_by = ?
+    """
+    connection = getConnection()
+    cursor = connection.cursor()
+    cursor.execute(query, (tid,))
+    avg = cursor.fetchone()[0]
+    connection.close()
+    return round(avg, 2) if avg else 0
+
+
+def getCompletionRateForTeacher(tid):
+    connection = getConnection()
+    cursor = connection.cursor()
+
+    cursor.execute("SELECT COUNT(*) FROM quiz WHERE created_by = ?", (tid,))
+    total_quizzes = cursor.fetchone()[0]
+
+    cursor.execute(
+        """
+        SELECT COUNT(DISTINCT qr.quiz_id)
+        FROM quiz_results qr
+        JOIN quiz q ON qr.quiz_id = q.id
+        WHERE q.created_by = ?
+    """,
+        (tid,),
+    )
+    completed = cursor.fetchone()[0]
+
+    connection.close()
+
+    if total_quizzes == 0:
+        return 0
+    return round((completed / total_quizzes) * 100)
+
+
+def getCompletionRateForTeacher(tid):
+    connection = getConnection()
+    cursor = connection.cursor()
+
+    cursor.execute("SELECT COUNT(*) FROM quiz WHERE created_by = ?", (tid,))
+    total_quizzes = cursor.fetchone()[0]
+
+    cursor.execute(
+        """
+        SELECT COUNT(DISTINCT qr.quiz_id)
+        FROM quiz_results qr
+        JOIN quiz q ON qr.quiz_id = q.id
+        WHERE q.created_by = ?
+    """,
+        (tid,),
+    )
+    completed = cursor.fetchone()[0]
+
+    connection.close()
+
+    if total_quizzes == 0:
+        return 0
+    return round((completed / total_quizzes) * 100)
+
+
+def getChartDataForTeacher(tid):
+    query = """
+        SELECT q.title, AVG(qr.score) AS avg_score
+        FROM quiz_results qr
+        JOIN quiz q ON qr.quiz_id = q.id
+        WHERE q.created_by = ?
+        GROUP BY q.id
+        ORDER BY q.created_at DESC
+        LIMIT 5
+    """
+    connection = getConnection()
+    cursor = connection.cursor()
+    cursor.execute(query, (tid,))
+    rows = cursor.fetchall()
+    connection.close()
+
+    labels = [row[0] for row in rows]
+    scores = [round(row[1], 2) if row[1] else 0 for row in rows]
+    return {"labels": labels, "scores": scores}
+
+
+def getMostCompletedQuizzesOfTeacher(tid, limit=3):
+    query = """
+        SELECT q.id, q.title, COUNT(qr.id) as count
+        FROM quiz q
+        LEFT JOIN quiz_results qr ON q.id = qr.quiz_id
+        WHERE q.created_by = ?
+        GROUP BY q.id        
+        ORDER BY count DESC
+        LIMIT ?
+    """
+    connection = getConnection()
+    cursor = connection.cursor()
+    cursor.execute(query, (tid, limit))
+    rows = cursor.fetchall()
+    connection.close()
+
+    return [{"id": row[0], "title": row[1], "count": row[2]} for row in rows]
+
+
+def getRecentStudentActivity(tid, limit=5):
+    query = """
+        SELECT qr.sid, q.title, qr.score, q.id
+        FROM quiz_results qr
+        JOIN quiz q ON qr.quiz_id = q.id
+        WHERE q.created_by = ?
+        ORDER BY qr.completed_at DESC
+        LIMIT ?
+    """
+    connection = getConnection()
+    cursor = connection.cursor()
+    cursor.execute(query, (tid, limit))
+    rows = cursor.fetchall()
+    connection.close()
+
+    return [
+        {
+            "sid": row[0],
+            "quiz_title": row[1],
+            "score": row[2],
+            "quiz_id": row[3],
+            "message": f'Student {row[0]} completed "{row[1]}" ({row[2]}%)',
+        }
+        for row in rows
+    ]
+
+
+def getStudentLeaderboard(limit=5):
+    connection = getConnection()
+    cursor = connection.cursor()
+
+    query = """
+        SELECT s.sid, u.username, s.total_points
+        FROM students s
+        JOIN users u ON s.user_id = u.id
+        ORDER BY s.total_points DESC
+        LIMIT ?
+    """
+    cursor.execute(query, (limit,))
+    results = cursor.fetchall()
+    connection.close()
+
+    # Επιστρέφει λίστα από dictionaries
+    return [{"sid": row[0], "username": row[1], "points": row[2]} for row in results]
+
+
+def getQuizResultsForTeacher(tid, quiz_id=None):
+    connection = getConnection()
+    cursor = connection.cursor()
+
+    query = """
+        SELECT qr.id, u.username, q.title, qr.score, qr.completed_at, s.sid, q.id
+        FROM quiz_results qr
+        JOIN quiz q ON qr.quiz_id = q.id
+        JOIN students s ON qr.sid = s.sid
+        JOIN users u ON s.user_id = u.id
+        WHERE q.created_by = ?
+    """
+
+    params = [tid]
+
+    if quiz_id:
+        query += " AND q.id = ?"
+        params.append(quiz_id)
+
+    query += " ORDER BY qr.completed_at DESC LIMIT 50"
+
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+    connection.close()
+
+    results = []
+    for row in rows:
+        results.append(
+            {
+                "result_id": row[0],
+                "username": row[1],
+                "quiz_title": row[2],
+                "score": row[3],
+                "completed_at": row[4].split(" ")[0] if row[4] else "",
+                "sid": row[5],
+                "quiz_id": row[6],
+            }
+        )
+    return results

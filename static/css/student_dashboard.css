@@ -12,7 +12,8 @@ body {
 
 /* Main Content */
 .main-content {
-    margin-left: 270px;
+    margin-left: 250px;
+    /* Same width as sidebar */
     padding: 40px;
     flex: 1;
 }
@@ -84,7 +85,54 @@ body {
     padding: 8px 12px;
     border-radius: 20px;
     font-size: 14px;
+    position: relative;
+    cursor: pointer;
 }
+
+/* Tooltip κρυφό από default */
+.badge::after {
+    content: attr(data-description);
+    position: absolute;
+    top: 150%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.75);
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+    font-size: 13px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 1000;
+    max-width: 250px;
+    width: max-content;
+}
+
+/* Μικρό τρίγωνο κάτω από το tooltip */
+.badge::before {
+    content: '';
+    position: absolute;
+    top: 110%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: transparent transparent rgba(0, 0, 0, 0.75) transparent; /* βελάκι προς τα πάνω */
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+/* Εμφάνιση tooltip στο hover */
+.badge:hover::after,
+.badge:hover::before {
+    opacity: 1;
+    pointer-events: auto;
+}
+
 
 /* Notifications */
 .notifications-list {
@@ -486,4 +534,40 @@ body {
     height: 100%;
     background-color: #ffd166;
     transition: width 0.4s ease;
+}
+
+.flash-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+}
+
+.flash.success {
+    background: linear-gradient(to right, #34d399, #10b981);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    min-width: 250px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(50px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.wide-achievements {
+    flex: 1 1 600px;
+    /* Πιάνει περισσότερο χώρο σε σχέση με άλλες κάρτες */
 }

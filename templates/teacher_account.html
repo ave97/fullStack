@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Account | EduPlay</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/account.css') }}">
     <script defer src="{{ url_for('static', filename='js/account.js')}}"></script>
 </head>
@@ -22,7 +23,8 @@
                     class="{% if request.endpoint == 'myAccount' %}active{% endif %}">My Account</a></li>
             <li><a href="{{ url_for('create_quiz') }}">Create Quiz</a></li>
             <li><a href="{{ url_for('history') }}">History</a></li>
-            <li>My Students</li>
+            <li><a href="{{ url_for('teacher_student_scores') }}">Student Scores</a></li>
+            <li><a href="{{ url_for('manage_students')}}">Students List</a></li>
             <li>Progress</li>
             <li><a href="{{ url_for('logout') }}">Log out</a></li>
         </ul>
@@ -38,71 +40,73 @@
     {% endif %}
     {% endwith %}
 
-    <div class="account-container">
-        <div class="profile-header">
-            <img src="{{ url_for('static', filename='images/avatars/default_avatar.png') }}" class="avatar">
-            <div class="user-info">
-                <h4>Username: {{ user.username }}</h4>
-                <h4>User ID: {{ user.id }}</h4>
-                <p>Email: {{ user.email }}</p>
-                <small>Role: {{ user.role }}</small>
+    <div class="main-content">
+        <div class="account-container">
+            <div class="profile-header">
+                <img src="{{ url_for('static', filename='images/avatars/default_avatar.png') }}" class="avatar">
+                <div class="user-info">
+                    <h4>Username: {{ user.username }}</h4>
+                    <h4>User ID: {{ user.id }}</h4>
+                    <p>Email: {{ user.email }}</p>
+                    <small>Role: {{ user.role }}</small>
+                </div>
+            </div>
+
+            <div id="info" class="tab-content active">
+                <div class="info-group">
+                    <label>Username:</label>
+                    <p>{{ user.username }}</p>
+                </div>
+                <div class="info-group">
+                    <label>Email:</label>
+                    <p>{{ user.email }}</p>
+                </div>
+                <div class="info-group">
+                    <button class="edit-btn" onclick="openEditModal()">Edit Info</button>
+                </div>
             </div>
         </div>
 
-        <div id="info" class="tab-content active">
-            <div class="info-group">
-                <label>Username:</label>
-                <p>{{ user.username }}</p>
+        <div class="info-panel">
+            <div class="info-box">
+                <h3>Total Quizzes Created</h3>
+                <p>{{ user.quiz_count }}</p>
             </div>
-            <div class="info-group">
-                <label>Email:</label>
-                <p>{{ user.email }}</p>
-            </div>
-            <div class="info-group">
-                <button class="edit-btn" onclick="openEditModal()">Edit Info</button>
+
+            <div class="quiz-list-section">
+                <h3>Your Quizzes</h3>
+                {% if quizzes %}
+                <ul class="quiz-list">
+                    {% for quiz in quizzes %}
+                    <li>
+                        <strong>{{ quiz.title }}</strong>
+                        <span>Created: {{ quiz.created_at }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p>You haven't created any quizzes yet.</p>
+                {% endif %}
             </div>
         </div>
-    </div>
 
-    <div class="info-panel">
-        <div class="info-box">
-            <h3>Total Quizzes Created</h3>
-            <p>{{ user.quiz_count }}</p>
-        </div>
+        <div id="editModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeEditModal()">&times;</span>
+                <h2>Edit Profile Information</h2>
+                <form action="{{ url_for('update_account') }}" method="POST">
+                    <label for="name">Username:</label>
+                    <input type="text" id="name" name="name" value="{{ user.username }}" required>
 
-        <div class="quiz-list-section">
-            <h3>Your Quizzes</h3>
-            {% if quizzes %}
-            <ul class="quiz-list">
-                {% for quiz in quizzes %}
-                <li>
-                    <strong>{{ quiz.title }}</strong>
-                    <span>Created: {{ quiz.created_at }}</span>
-                </li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <p>You haven't created any quizzes yet.</p>
-            {% endif %}
-        </div>
-    </div>
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" value="{{ user.email }}" required>
 
-    <div id="editModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeEditModal()">&times;</span>
-            <h2>Edit Profile Information</h2>
-            <form action="{{ url_for('update_account') }}" method="POST">
-                <label for="name">Username:</label>
-                <input type="text" id="name" name="name" value="{{ user.username }}" required>
+                    <label for="password">New Password:</label>
+                    <input type="password" id="password" name="password" placeholder="Leave blank if not changing">
 
-                <label for="email">Email:</label>
-                <input type="email" id="email" name="email" value="{{ user.email }}" required>
-
-                <label for="password">New Password:</label>
-                <input type="password" id="password" name="password" placeholder="Leave blank if not changing">
-
-                <button type="submit" class="save-btn">Save Changes</button>
-            </form>
+                    <button type="submit" class="save-btn">Save Changes</button>
+                </form>
+            </div>
         </div>
     </div>
 

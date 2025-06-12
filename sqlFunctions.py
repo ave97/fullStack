@@ -19,7 +19,7 @@ def createUsersDB():
         username TEXT UNIQUE NOT NULL, 
         email TEXT UNIQUE NOT NULL, 
         password TEXT NOT NULL, 
-        role TEXT CHECK(role IN ('student', 'teacher')) NOT NULL, 
+        role TEXT CHECK(role IN ('student', 'teacher', 'admin')) NOT NULL, 
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         """
@@ -39,7 +39,9 @@ def createStudentsDB():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         sid TEXT UNIQUE NOT NULL,
         user_id INTEGER NOT NULL,
+        class TEXT NOT NULL,
         xp INTEGER DEFAULT 0,
+        total_points INTEGER DEFAULT 0,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
         """
@@ -66,6 +68,44 @@ def createTeachersDB():
     connection.close()
 
 
+def createTeacherStudentsDB():
+    connection = getConnection()
+    cursor = connection.cursor()
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS teacher_students (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tid INTEGER NOT NULL,
+            sid INTEGER NOT NULL,
+            FOREIGN KEY (tid) REFERENCES teachers(id) ON DELETE CASCADE,
+            FOREIGN KEY (sid) REFERENCES students(id) ON DELETE CASCADE,
+            UNIQUE (tid, sid)
+        );
+        """
+    )
+    connection.commit()
+    connection.close()
+
+
+# Pending Teachers
+def createPendingTeachersDB():
+    connection = getConnection()
+    cursor = connection.cursor()
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS pending_teachers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL, 
+        email TEXT UNIQUE NOT NULL, 
+        password TEXT NOT NULL, 
+        submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """
+    )
+    connection.commit()
+    connection.close()
+
+
 # Quiz
 def createQuizDB():
     connection = getConnection()
@@ -77,7 +117,8 @@ def createQuizDB():
         title TEXT NOT NULL, 
         lesson TEXT,  
         created_by TEXT NOT NULL, 
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        target_class TEXT  -- <-- νέο πεδίο
         );
         """
     )
@@ -151,42 +192,6 @@ def createQuizResultsDB():
     )
 
 
-# Notifications
-def createNotficationsDB():
-    connection = getConnection()
-    cursor = connection.cursor()
-    # Δημιουργία πίνακα ειδοποιήσεων
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS notifications (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        message TEXT NOT NULL,
-        type TEXT NOT NULL,
-        quiz_id TEXT,
-        created_at TEXT,
-        created_by INTEGER,
-        FOREIGN KEY (created_by) REFERENCES users(id)
-        );
-        """
-    )
-
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS notification_seen (
-        user_type TEXT,
-        user_id TEXT,
-        notification_id INTEGER,
-        seen INTEGER DEFAULT 0,
-        PRIMARY KEY (user_type, user_id, notification_id),
-        FOREIGN KEY (notification_id) REFERENCES notifications(id)
-        );
-        """
-    )
-
-    connection.commit()
-    connection.close()
-
-
 # Daily Spin
 def createDailySpinDB():
     connection = getConnection()
@@ -218,6 +223,8 @@ def createActiveBonusDB():
         bonus TEXT NOT NULL,
         start_date DATE NOT NULL,
         end_date DATE NOT NULL,
+        used INTEGER DEFAULT 0,
+        used_for_qid INTEGER DEFAULT NULL,
         FOREIGN KEY (sid) REFERENCES students(sid) ON DELETE CASCADE
         );
         """
@@ -243,6 +250,8 @@ def createQuizResultsDB():
             time_taken INTEGER,
             total_spins INTEGER,
             completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            bonus TEXT,
+            base_xp INTEGER,
             FOREIGN KEY (sid) REFERENCES students(sid) ON DELETE CASCADE,
             FOREIGN KEY (quiz_id) REFERENCES quiz(id) ON DELETE CASCADE
         );
@@ -282,26 +291,39 @@ def createStudentAnswersDB():
 def createAchievementsDB():
     connection = getConnection()
     cursor = connection.cursor()
-    cursor.execute("CREATE TABLE IF NOT EXISTS achievements ()")
+    cursor.execute(
+        """
+            CREATE TABLE IF NOT EXISTS achievements (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                description TEXT,
+                xp INTEGER DEFAULT 0,
+                type TEXT,
+                target INTEGER DEFAULT 1
+            );
+        """
+    )
     connection.commit()
     connection.close()
 
 
-# Leaderboard
-def createLeaderboardDB():
-    connection = getConnection()
-    cursor = connection.cursor()
-    cursor.execute("CREATE TABLE IF NOT EXISTS leaderboard ()")
-    connection.commit()
-    connection.close()
-
-
-# Friends
-def createFriendsDB():
+def createUserAchievementsDB():
     connection = getConnection()
     cursor = connection.cursor()
     cursor.execute(
-        "CREATE TABLE IF NOT EXISTS friends (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, friend_user_id INTEGER NOT NULL, status TEXT NOT NULL, timestamp TIMESTAMP)"
+        """
+            CREATE TABLE IF NOT EXISTS user_achievement_progress (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                achievement_id INTEGER NOT NULL,
+                current_value INTEGER DEFAULT 0,
+                unlocked BOOLEAN DEFAULT 0,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (achievement_id) REFERENCES achievements(id) ON DELETE CASCADE,
+                UNIQUE(user_id, achievement_id)
+            );
+        """
     )
     connection.commit()
     connection.close()
@@ -337,26 +359,87 @@ def deleteUser():
 def drop():
     connection = getConnection()
     cursor = connection.cursor()
-    cursor.execute("DROP TABLE student_answers")
+    cursor.execute("DROP TABLE students;")
+    connection.commit()
+    connection.close()
+
+
+def change():
+    connection = getConnection()
+    cursor = connection.cursor()
+
+    cursor.execute("ALTER TABLE quiz ADD COLUMN target_class TEXT;")
     connection.commit()
     connection.close()
 
 
 # Uncomment the following lines to create the necessary databases
 # drop()
+# change()
 # createUsersDB()
-# createStudentsDB()
+createStudentsDB()
 # createTeachersDB()
-# createFriendsDB()
+# createTeacherStudentsDB()
+# createPendingTeachersDB()
 # createQuizDB()
 # createQuestionsDB()
 # createMatchingDB()
 # createAnsweredQuizDB()
-# createNotficationsDB()
 # createDailySpinDB()
-# # createActiveBonusDB()
+# createActiveBonusDB()
 # createQuizResultsDB()
 # createStudentAnswersDB()
+# createAchievementsDB()
+# createUserAchievementsDB()
+
+# def insertAdminUser():
+#     connection = getConnection()
+#     cursor = connection.cursor()
+
+#     hashed_password = generate_password_hash("admin4eduplay")
+#     cursor.execute("""
+#         INSERT INTO users (username, email, password, role)
+#         VALUES (?, ?, ?, ?)
+#     """, ("admin", "admin@example.com", hashed_password, "admin"))
+
+#     connection.commit()
+#     connection.close()
+
+# insertAdminUser()
+
+# def change():
+#     connection = getConnection()
+#     cursor = connection.cursor()
+
+#     # 1. Απενεργοποίηση foreign key constraint για τη διάρκεια της αλλαγής
+#     cursor.execute("PRAGMA foreign_keys = OFF;")
+
+#     # 2. Εκτέλεση αλλαγής πίνακα users με νέο schema (με admin στο role)
+#     cursor.executescript("""
+#         CREATE TABLE users_new (
+#             id INTEGER PRIMARY KEY AUTOINCREMENT,
+#             username TEXT UNIQUE NOT NULL,
+#             email TEXT UNIQUE NOT NULL,
+#             password TEXT NOT NULL,
+#             role TEXT CHECK(role IN ('student', 'teacher', 'admin')) NOT NULL,
+#             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+#         );
+
+#         INSERT INTO users_new (id, username, email, password, role, created_at)
+#         SELECT id, username, email, password, role, created_at FROM users;
+
+#         DROP TABLE users;
+
+#         ALTER TABLE users_new RENAME TO users;
+#     """)
+
+#     # 3. Ενεργοποίηση ξανά των foreign key constraints
+#     cursor.execute("PRAGMA foreign_keys = ON;")
+
+#     connection.commit()
+#     connection.close()
+
+# change()
 
 
 def delete(i):

@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', function () {
-    const wheelSize = 630;
+    const wheelSize = Math.min(window.innerWidth, 630);
+
     const center = wheelSize / 2;
     const radius = wheelSize / 2;
 

@@ -28,6 +28,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 .then(data => {
                     document.getElementById("quizTitle").value = data.quiz_data.title;
                     document.getElementById("quizLesson").value = data.quiz_data.lesson;
+                    document.getElementById("quizClass").value = data.quiz_data.class;
                     modal.classList.add("show");
                 });
             latestQuizCard = quizId;
@@ -60,6 +61,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const title = document.getElementById("quizTitle").value;
         const lesson = document.getElementById("quizLesson").value;
+        const quizClass = document.getElementById("quizClass").value;
 
         fetch("/quick_edit_quiz", {
             method: "POST",
@@ -69,7 +71,8 @@ document.addEventListener("DOMContentLoaded", function () {
             body: JSON.stringify({
                 quiz_id: quizId,
                 title: title,
-                lesson: lesson
+                lesson: lesson,
+                class: quizClass
             })
         })
             .then(response => response.json())

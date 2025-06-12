@@ -1,7 +1,6 @@
 function getRandomRewardMessage(bonus) {
     const messages = [
         "🎉 Yay! You won: ",
-        "🎁 Wow! You got: ",
         "✨ Awesome! You earned: ",
         "🏆 Great job! Reward: ",
         "🎊 Hooray! You got: "

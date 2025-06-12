@@ -8,15 +8,15 @@ from flask import (
     jsonify,
     send_file,
     flash,
+    abort,
 )
 import database, random, json
 from werkzeug.security import check_password_hash, generate_password_hash
 from quiz import Question, Quiz
 import os, re, io, csv, zipfile, traceback
 from datetime import datetime, timedelta
-from users import Teacher, Student
 from leveling import get_student_level_info
-
+from tts_utils import generate_tts_audio_if_needed, clean_old_audio
 
 from plotly.offline import plot
 import plotly.graph_objs as go
@@ -37,43 +37,87 @@ def register():
     username = request.form.get("username")
     email = request.form.get("email")
     password = request.form.get("password")
+    userClass = request.form.get("class")
     role = request.form.get("role")
-
-    if password is None:
-        print("Δεν βρέθηκε το password στο request!")
-    else:
-        print(password)
 
     if not username or not email or not password or not role:
         return render_template(
-            "home.html", error="Συμπληρώστε όλα τα πεδία!", register=True
+            "home.html", error="Please fill in all fields!", register=True
         )
 
     if len(password) < 6:
         return render_template(
             "home.html",
-            error="Ο κωδικός πρέπει να περιέχει τουλάχιστον 6 χαρακτήρες!",
+            error="Password must be at least 6 characters long!",
             register=True,
         )
 
-    email_regex = r"[a-zA-z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+    email_regex = r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
     if not re.match(email_regex, email):
         return render_template(
-            "home.html", error="Το email δεν έχει έγκυρη μορφή!", register=True
-        )
-
-    # Έλεγχος αν υπάρχει ήδη ο χρήστης
-    existing_user = database.selectUser(username)
-    if existing_user:
-        return render_template(
-            "home.html", error="Το όνομα χρήστη υπάρχει ήδη!", register=True
+            "home.html", error="Invalid email format!", register=True
         )
 
     hashed_pass = generate_password_hash(password)
-    # Προσθήκη νέου χρήστη στη βάση
-    database.insertUser(username, email, hashed_pass, role)
 
-    print(f"Εγγραφή νέου χρήστη: {username} ως {role}")
+    connection = database.getConnection()
+    cursor = connection.cursor()
+
+    # Έλεγχος πρώτα στον users
+    cursor.execute(
+        "SELECT * FROM users WHERE username = ? OR email = ?", (username, email)
+    )
+    existing_user = cursor.fetchone()
+
+    if existing_user:
+        connection.close()
+        return render_template(
+            "home.html",
+            error="A user with this username or email already exists.",
+            register=True,
+        )
+
+    # Μετά έλεγχος στο pending_teachers
+    cursor.execute(
+        "SELECT * FROM pending_teachers WHERE username = ? OR email = ?",
+        (username, email),
+    )
+    existing_pending = cursor.fetchone()
+
+    if existing_pending:
+        connection.close()
+        return render_template(
+            "home.html",
+            error="There is already a pending teacher request with this username or email.",
+            register=True,
+        )
+
+    # Αν όλα καλά, proceed
+    if role == "student":
+        cursor.execute(
+            "INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, 'student')",
+            (username, email, hashed_pass),
+        )
+        user_id = cursor.lastrowid
+        sid = database.generate_id("student")  # Δημιούργησε SID
+        cursor.execute(
+            "INSERT INTO students (sid, user_id, class) VALUES (?, ?, ?)",
+            (sid, user_id, userClass),
+        )
+        connection.commit()
+        flash("Registration successful!", "success")
+    elif role == "teacher":
+        cursor.execute(
+            "INSERT INTO pending_teachers (username, email, password) VALUES (?, ?, ?)",
+            (username, email, hashed_pass),
+        )
+        connection.commit()
+        flash(
+            "Your teacher request has been submitted and is pending approval.", "info"
+        )
+
+    connection.close()
+    print(f"New registration: {username} as {role}")
     return redirect(url_for("dashboard"))
 
 
@@ -85,11 +129,40 @@ def login():
 
         user = database.selectUser(username)
         if user:
-            session["user"] = username
-            session["role"] = user[4]
             if check_password_hash(user[3], password):
-                return dashboard()
-        return render_template("home.html", error="Incorrect username or password")
+                session.clear()
+                session["user_id"] = user[0]
+                session["user"] = user[1]
+                session["role"] = user[4]
+
+                if user[4] == "student":
+                    unlocked = database.track_progress(user[0], "logins", 1)
+                    for title in unlocked:
+                        flash(
+                            f"Συγχαρητήρια! Ξεκλείδωσες το επίτευγμα: {title}",
+                            "success",
+                        )
+
+                if user[4] == "admin":
+                    return redirect(url_for("admin_dashboard"))
+                else:
+                    return redirect(url_for("dashboard"))
+            else:
+                return render_template(
+                    "home.html", error="Incorrect email or password.", login=True
+                )
+
+        # Αν δεν υπάρχει στον users, έλεγξε αν είναι σε pending_teachers
+        pending = database.selectPendingTeacher(username)
+        if pending:
+            return render_template(
+                "home.html",
+                error="Your teacher account is pending approval.",
+                login=True,
+            )
+
+        return render_template("home.html", error="User not found.", login=True)
+
     return render_template("home.html")
 
 
@@ -109,25 +182,45 @@ def teacher_dashboard():
     if "user" not in session or session["role"] != "teacher":
         return redirect(url_for("no_access"))
 
-    teacher = database.getTeacherInfo(session["user"])
-    latest_quizzes = database.getLatestQuizzesByTeacher(teacher.getTid())
+    teacher_username = session["user"]
+    teacher = database.getTeacherInfo(teacher_username)
+    teacher_id = teacher.getTid()
 
-    if not latest_quizzes:
-        error_msg = f"No quiz found created by teacher {session['user']}."
-        latest_quizzes = []
-    else:
-        for quiz in latest_quizzes:
-            quiz["created_at"] = quiz["created_at"].split(" ")[0]
-        error_msg = None
+    # Latest quizzes
+    latest_quizzes = database.getLatestQuizzesByTeacher(teacher_id)
+    for quiz in latest_quizzes:
+        quiz["created_at"] = quiz["created_at"].split(" ")[0]
+
+    # Activity feed
+    activity_feed = database.getRecentStudentActivity(teacher_id)  # list of strings
+
+    # Most completed quiz
+    top_quizzes = database.getMostCompletedQuizzesOfTeacher(teacher_id)
+
+    # Insights
+    insights = {
+        "total_students": database.getUniqueStudentsForTeacher(teacher_id),
+        "total_quizzes": len(latest_quizzes),
+        "avg_score": database.getAverageScoreForTeacher(teacher_id),
+        "completion_rate": database.getCompletionRateForTeacher(teacher_id),
+        "top_quizzes": top_quizzes,
+    }
+
+    # Leaderboard
+    leaderboard = database.getStudentLeaderboard()
+
+    # Chart data
+    chart_data = database.getChartDataForTeacher(teacher_id)
 
     return render_template(
         "teacher_dashboard.html",
-        user=session["user"],
-        role=session["role"],
+        user=teacher_username,
+        current_date=datetime.now().strftime("%d %B %Y"),
         quizzes=latest_quizzes,
-        error_msg=error_msg,
-        current_date=datetime.now().strftime("%d %B %Y"),  # Προσθήκη ημερομηνίας
-        total_students=40,  # ή ό,τι σωστά φέρνεις από τη βάση σου
+        activity_feed=activity_feed,
+        insights=insights,
+        leaderboard=leaderboard,
+        chart_data=chart_data,
     )
 
 
@@ -140,17 +233,11 @@ def student_dashboard():
     student = database.getStudentInfo(username)
 
     if student is None:
-        return redirect(url_for("no_access"))
+        return render_template("home.html", error="User not found.", login=True)
 
     sid = student[0]
 
-    # Λήψη ειδοποιήσεων για τον χρήστη
-    notifications = database.getNotification(sid)  # Χρησιμοποιούμε το sid ως user_id
-    send_notification = []
-    for notification in notifications:
-        message = notification[1]
-        quiz_id = notification[3]
-        send_notification.append({"message": message, "quiz_id": quiz_id})
+    database.cleanExpiredBonuses(sid)
 
     conn = database.getConnection()
     cursor = conn.cursor()
@@ -223,16 +310,12 @@ def student_dashboard():
                 {"label": lesson, "value": rate, "correct": correct, "total": total}
             )
 
-    print("Chart data:", chart_data)
-
     conn.close()
 
-    achievements = [
-        {"name": "First Quiz Completed"},
-        {"name": "Quiz Streak: 5 Days"},
-        {"name": "100% Score in a Quiz"},
-        {"name": "10 Quizzes Completed"},
-    ]
+    all_achievements = database.getUserAchievements(session["user_id"])
+    unlocked_achievements = [a for a in all_achievements if a["unlocked"]]
+
+    achievements = unlocked_achievements
 
     bonuses = database.getActiveBonuses(sid)
 
@@ -281,7 +364,7 @@ def daily_spin():
     data = request.get_json()
     chosen_index = data.get("chosen_index")
 
-    bonuses = ["⭐ 2x XP", "🕒 -30s", "💡 Hint", "🚫 Nothing"]
+    bonuses = ["⭐ 2x XP", "⭐ 3x XP", "⭐ 5x XP", "🚫 Nothing"]
     selected_bonus = random.choice(bonuses)
 
     # Αφαίρεσε το επιλεγμένο για να μην το έχεις 2 φορές
@@ -356,25 +439,7 @@ def myAccount():
     elif role == "student":
         student = database.getStudentInfo(username)
         sid = student[0]
-
-        # Mocked quiz performance data
-        labels = ["Math", "Science", "History", "Geo"]
-        correct = [8, 5, 6, 7]
-        wrong = [2, 3, 4, 2]
-
-        # Create Plotly chart
-        trace1 = go.Bar(
-            x=labels, y=correct, name="Correct", marker=dict(color="#118AB2")
-        )
-        trace2 = go.Bar(x=labels, y=wrong, name="Wrong", marker=dict(color="#ef476f"))
-
-        data = [trace1, trace2]
-        layout = go.Layout(title="Quiz Performance", barmode="group")
-        fig = go.Figure(data=data, layout=layout)
-        chart_html = plot(fig, output_type="div", include_plotlyjs="cdn")
-
-        # Achievements (fake for now)
-        achievements = [{"name": "First Quiz"}, {"name": "100 Points!"}]
+        userClass = student[1]
 
         level_info = get_student_level_info(sid)
         level_data = {
@@ -391,25 +456,14 @@ def myAccount():
             "username": user[1],
             "id": sid,
             "email": user[2],
+            "class": userClass,
             "role": "student",
         }
-
-        conn = database.getConnection()
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT DISTINCT q.id, q.title FROM quiz q JOIN quiz_results r ON q.id = r.quiz_id WHERE r.sid = ?",
-            (sid,),
-        )
-        quizzes_done = cursor.fetchall()
-        conn.close()
 
         return render_template(
             "student_account.html",
             user=online_user,
             level_data=level_data,
-            chart_html=chart_html,
-            achievements=achievements,
-            quizzes_done=quizzes_done,
         )
 
 
@@ -456,6 +510,7 @@ def save_quiz():
 
         quizTitle = request.form.get("quizTitle")
         quizLesson = request.form.get("quizLesson")
+        quizClass = request.form.get("quizClass")
 
         # Έλεγχος αν τα πεδία του κουίζ είναι κενά
         if not quizTitle or not quizLesson:
@@ -467,7 +522,7 @@ def save_quiz():
 
         try:
             # Εισαγωγή του κουίζ στη βάση
-            quiz_id = database.insertQuiz(quiz, teacher)
+            quiz_id = database.insertQuiz(quiz, teacher, quizClass)
 
             questionNum = 1
             while f"question_{questionNum}" in request.form:
@@ -549,12 +604,6 @@ def save_quiz():
 
                 questionNum += 1
 
-            notification_msg = f"New quiz created: {quizTitle}"
-            target_role = "student"
-            database.createNotification(
-                notification_msg, session["user"], target_role, quiz_id, "teacher"
-            )
-
             return redirect(url_for("history"))
 
         except Exception as e:
@@ -566,6 +615,52 @@ def save_quiz():
             )
 
     return render_template("teacher_dashboard.html", user=session["user"])
+
+
+@app.route("/teacher/student_scores")
+def teacher_student_scores():
+    if "user" not in session or session["role"] != "teacher":
+        return redirect(url_for("no_access"))
+
+    teacher = database.getTeacherInfo(session["user"])
+    teacher_id = teacher.getTid()
+
+    quiz_id = request.args.get("quiz_id")
+    quiz_title = None  # ✅ fix: always define it
+
+    if quiz_id:
+        results = database.getQuizResultsForTeacher(teacher_id, quiz_id=quiz_id)
+        quiz_title = database.getQuizTitle(quiz_id)
+    else:
+        results = database.getQuizResultsForTeacher(teacher_id)
+
+    return render_template(
+        "teacher_student_scores.html",
+        user=session["user"],
+        results=results,
+        quiz_title=quiz_title,
+        current_date=datetime.now().strftime("%d %B %Y"),
+    )
+
+
+@app.route("/teacher/quiz_summary/<int:quiz_id>/<sid>")
+def quiz_summary_detail(quiz_id, sid):
+    if "user" not in session or session["role"] != "teacher":
+        return redirect(url_for("no_access"))
+
+    # Φόρτωσε δεδομένα για το συγκεκριμένο quiz_result_id
+    summary_data = database.get_quiz_summary_extended(sid, quiz_id)
+    if not summary_data:
+        return "Summary not found", 404
+
+    quiz_title = database.getQuizTitleById(quiz_id)
+
+    return render_template(
+        "teacher_quiz_summary.html",
+        summary=summary_data,
+        quiz_title=quiz_title,
+        sid=sid,
+    )
 
 
 @app.route("/history")
@@ -594,6 +689,7 @@ def get_quiz(quiz_id):
         "id": quiz["id"],
         "title": quiz["title"],
         "lesson": quiz["lesson"],
+        "class": quiz["target_class"],
         "questions": [
             {
                 "id": q["id"],
@@ -623,6 +719,7 @@ def view_quiz(quiz_id):
         "id": quiz["id"],
         "title": quiz["title"],
         "lesson": quiz["lesson"],
+        "class": quiz["target_class"],
         "questions": [
             {
                 "id": q["id"],
@@ -673,11 +770,12 @@ def quick_edit_quiz():
     quiz_id = data.get("quiz_id")
     title = data.get("title")
     lesson = data.get("lesson")
+    quizClass = data.get("class")
 
     if not quiz_id or not title or not lesson:
         return jsonify({"success": False, "error": "Missing required fields"}), 400
 
-    database.quickEditQuiz(quiz_id, title, lesson)
+    database.quickEditQuiz(quiz_id, title, lesson, quizClass)
 
     return jsonify({"success": True})
 
@@ -694,10 +792,11 @@ def update_quiz(quizId):
     try:
         quiz_title = data.get("quizTitle")
         quiz_lesson = data.get("quizLesson")
+        quiz_class = data.get("quizClass")
         questions_data = data.get("questions")
 
         # 1. Ενημέρωση quiz
-        database.updateQuiz(quizId, quiz_title, quiz_lesson)
+        database.updateQuiz(quizId, quiz_title, quiz_lesson, quiz_class)
 
         # 2. Πάρε όλες τις υπάρχουσες ερωτήσεις του quiz
         existing_questions = database.getQuestionsBy(quizId)
@@ -715,16 +814,21 @@ def update_quiz(quizId):
 
         # 4. Επεξεργασία κάθε ερώτησης από το JSON
         for i, (q_key, q_data) in enumerate(questions_data.items(), start=1):
+            print(f"Processing question {i}: {q_key}")
             q_id = q_data.get("id")
             q_text = q_data.get("question_text")
             q_type = q_data.get("question_type")
             correct = q_data.get("correct_answer")
 
-            option1 = q_data.get("option_1")
+            option1 = q_data.get(f"option_1")
             option2 = q_data.get("option_2")
             option3 = q_data.get("option_3")
             option4 = q_data.get("option_4")
             matching = q_data.get("matching")
+
+            print(
+                f"Question ID: {q_id}, Options: {option1}, {option2}, {option3}, {option4}, Correct: {correct}"
+            )
 
             if q_id:
                 # Υπάρχουσα ερώτηση → update
@@ -873,6 +977,40 @@ def export_quizzes():
     )
 
 
+@app.route("/teacher/manage_students", methods=["GET", "POST"])
+def manage_students():
+    if "user" not in session or session["role"] != "teacher":
+        return redirect(url_for("login"))
+
+    tid = database.getTeacherInfo(session["user"]).getTid()
+
+    if request.method == "POST":
+        student_id = request.form["student_id"]
+        new_class = request.form["class"]
+        database.updateStudentClass(student_id, new_class)
+        flash("Class updated successfully!", "success")
+        return redirect(url_for("manage_students"))
+
+    all_students = database.getAllStudents()
+    print(f"All students: {all_students}")
+
+    students_by_class = {
+        "A": [],
+        "B": [],
+        "C": [],
+    }
+
+    for s in all_students:
+        if s[2] == "A":
+            students_by_class["A"].append(s)
+        elif s[2] == "B":
+            students_by_class["B"].append(s)
+        elif s[2] == "C":
+            students_by_class["C"].append(s)
+
+    return render_template("manage_students.html", students_by_class=students_by_class)
+
+
 @app.route("/play_quiz/<int:quiz_id>")
 def play_quiz(quiz_id):
     if "user" not in session or session["role"] != "student":
@@ -892,17 +1030,26 @@ def play_quiz(quiz_id):
     }
 
     for q in questions:
+        question_id = q["id"]
+        question_text = q["question_text"]
+
+        # Δημιουργία ήχου για την ερώτηση (αν δεν υπάρχει ήδη)
+        filename = f"quiz_{quiz_data["id"]}_question_{question_id}"
+        audio_path = generate_tts_audio_if_needed(question_text, filename)
+
         question_data = {
             "id": q["id"],
             "question_text": q["question_text"],
             "question_type": q["question_type"],
             "options": [q["option_1"], q["option_2"], q["option_3"], q["option_4"]],
             "correct_answer": q["correct_answer"],
+            "audio_url": "/" + audio_path,  # ➕ Εδώ στέλνεις τον ήχο στο frontend
         }
 
         # ➕ μόνο αν είναι matching
         if q["question_type"] == "matching":
             question_data["matching_pairs"] = database.getMatchingItems(q["id"])
+            random.shuffle(question_data["matching_pairs"])
 
         quiz_data["questions"].append(question_data)
 
@@ -922,10 +1069,33 @@ def quiz_summary_data():
 
     score = data["score"]
     correct = data["correct"]
-    xp_earned = score // 10 + correct * 2
+    base_xp = score // 10 + correct * 2
+
+    bonus = database.getNextActiveBonus(sid)
+    multiplier = 1
+    if bonus:
+        if "2x" in bonus:
+            multiplier = 2
+        elif "3x" in bonus:
+            multiplier = 3
+        elif "5x" in bonus:
+            multiplier = 5
+
+    xp_earned = base_xp * multiplier
+
+    if bonus:
+        database.use_bonus(sid, quiz_id)
 
     connection = database.getConnection()
     cursor = connection.cursor()
+
+    # Ενημέρωση των συνολικών πόντων (total_points)
+    cursor.execute("SELECT total_points FROM students WHERE sid = ?", (sid,))
+    current_points = cursor.fetchone()[0] or 0
+    new_points = current_points + score
+    cursor.execute(
+        "UPDATE students SET total_points = ? WHERE sid = ?", (new_points, sid)
+    )
 
     # Ενημέρωση XP του μαθητή
     cursor.execute("SELECT xp FROM students WHERE sid = ?", (sid,))
@@ -943,6 +1113,8 @@ def quiz_summary_data():
     connection.commit()
     connection.close()
 
+    database.track_progress(session["user_id"], "points")
+
     # Αποθήκευση αποτελέσματος
     quiz_result_id = database.save_quiz_result(
         sid=sid,
@@ -950,10 +1122,14 @@ def quiz_summary_data():
         score=score,
         correct=correct,
         total=data["total"],
-        xp=new_xp,
+        xp=xp_earned,
         time_taken=data["totalTime"],
         total_spins=data["total_spins"],
+        base_xp=base_xp,
+        bonus=bonus if bonus else None,
     )
+
+    print(f"XP earned: {xp_earned}, Bonus: {bonus}, Base XP: {base_xp}")
 
     # Αποθήκευση απαντήσεων
     for entry in data["answers"]:
@@ -970,6 +1146,8 @@ def quiz_summary_data():
             user_answer=user_ans,
             is_correct=entry["correct"],
         )
+
+    database.track_progress(session["user_id"], "quizzes")
 
     return "", 204
 
@@ -1024,42 +1202,304 @@ def my_quizzes():
 
 @app.route("/achievements")
 def my_achievements():
-    achievements = [
-        {
-            "name": "First Quiz Completed",
-            "description": "Complete your first quiz!",
-            "earned": True,
-            "date_earned": "2025-04-29",
-        },
-        {
-            "name": "Quiz Streak: 5 Days",
-            "description": "Play quizzes 5 days in a row!",
-            "earned": False,
-            "date_earned": None,
-        },
-        {
-            "name": "100% Score",
-            "description": "Achieve a perfect score in a quiz!",
-            "earned": True,
-            "date_earned": "2025-04-27",
-        },
-        {
-            "name": "10 Quizzes Completed",
-            "description": "Finish 10 different quizzes!",
-            "earned": False,
-            "date_earned": None,
-        },
-        {
-            "name": "Quiz Legend",
-            "description": "Complete all available quizzes!",
-            "earned": False,
-            "date_earned": None,
-        },
-    ]
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    user_id = session["user_id"]
+
+    # Πάρε όλα τα achievements
+    all_achievements = (
+        database.getAllAchievements()
+    )  # επιστρέφει (id, name, description, type, target, xp)
+
+    # Πάρε την πρόοδο του χρήστη
+    user_progress = database.getUserAchievementProgress(user_id)
+    # Μορφή: {achievement_id: {"current_value": x, "unlocked": bool, "updated_at": timestamp}}
+
+    achievements = []
+    for ach in all_achievements:
+        ach_id, name, description, type_, target, xp = ach
+        progress = user_progress.get(ach_id)
+
+        achievements.append(
+            {
+                "name": name,
+                "description": description,
+                "xp": xp,
+                "earned": progress["unlocked"] if progress else False,
+                "date_earned": (
+                    datetime.strptime(
+                        progress["updated_at"], "%Y-%m-%d %H:%M:%S"
+                    ).strftime("%Y-%m-%d")
+                    if progress and progress["unlocked"]
+                    else None
+                ),
+            }
+        )
 
     return render_template(
         "my_achievements.html", achievements=achievements, user=session["user"]
     )
+
+
+@app.route("/admin/dashboard")
+def admin_dashboard():
+    if session.get("role") != "admin":
+        abort(403)
+
+    connection = database.getConnection()
+    cursor = connection.cursor()
+
+    cursor.execute("SELECT COUNT(*) FROM users")
+    total_users = cursor.fetchone()[0]
+
+    cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'student'")
+    student_count = cursor.fetchone()[0]
+
+    cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'teacher'")
+    teacher_count = cursor.fetchone()[0]
+
+    cursor.execute(
+        "SELECT COUNT(*) FROM users WHERE created_at >= date('now', '-7 days')"
+    )
+    recent_registrations = cursor.fetchone()[0]
+
+    cursor.execute("SELECT COUNT(*) FROM pending_teachers")
+    pending_teacher_requests = cursor.fetchone()[0]
+
+    connection.close()
+
+    return render_template(
+        "admin/dashboard.html",
+        total_users=total_users,
+        student_count=student_count,
+        teacher_count=teacher_count,
+        recent_registrations=recent_registrations,
+        pending_teacher_requests=pending_teacher_requests,
+    )
+
+
+@app.route("/admin/users")
+def admin_users():
+    if session.get("role") != "admin":
+        abort(403)
+
+    connection = database.getConnection()
+    cursor = connection.cursor()
+    cursor.execute(
+        """
+        SELECT id, username, email, role, created_at
+        FROM users WHERE role != 'admin'
+        ORDER BY created_at DESC
+    """
+    )
+    users = cursor.fetchall()
+    connection.close()
+
+    return render_template("admin/users.html", users=users)
+
+
+@app.route("/admin/delete_user", methods=["POST"])
+def delete_user():
+    if session.get("role") != "admin":
+        abort(403)
+
+    user_id = request.form.get("user_id")
+    connection = database.getConnection()
+    cursor = connection.cursor()
+    cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    connection.commit()
+    connection.close()
+    flash("Ο χρήστης διαγράφηκε.", "success")
+    return redirect(url_for("admin_users"))
+
+
+@app.route("/admin/edit_user_modal", methods=["POST"])
+def admin_edit_user_modal():
+    if session.get("role") != "admin":
+        abort(403)
+
+    user_id = request.form["user_id"]
+    new_username = request.form["username"]
+    new_email = request.form["email"]
+    new_role = request.form["role"]
+
+    connection = database.getConnection()
+    cursor = connection.cursor()
+    cursor.execute(
+        """
+        UPDATE users
+        SET username = ?, email = ?, role = ?
+        WHERE id = ?
+        """,
+        (new_username, new_email, new_role, user_id),
+    )
+    connection.commit()
+    connection.close()
+
+    flash("Ο χρήστης ενημερώθηκε.", "success")
+    return redirect(url_for("admin_users"))
+
+
+@app.route("/admin/teacher_requests")
+def admin_teacher_requests():
+    if session.get("role") != "admin":
+        abort(403)
+
+    connection = database.getConnection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT id, username, email, submitted_at
+        FROM pending_teachers
+        ORDER BY submitted_at DESC
+    """
+    )
+    requests = cursor.fetchall()
+    connection.close()
+
+    return render_template("admin/teacher_requests.html", requests=requests)
+
+
+@app.route("/admin/handle_teacher_request", methods=["POST"])
+def handle_teacher_request():
+    if session.get("role") != "admin":
+        abort(403)
+
+    action = request.form.get("action")
+    request_id = request.form.get("request_id")
+
+    connection = database.getConnection()
+    cursor = connection.cursor()
+
+    if action == "accept":
+        cursor.execute(
+            "SELECT username, email, password FROM pending_teachers WHERE id = ?",
+            (request_id,),
+        )
+        user_data = cursor.fetchone()
+
+        if not user_data:
+            flash("Request not found.", "error")
+            return redirect(url_for("admin_teacher_requests"))
+
+        username, email, hashed_password = user_data
+
+        # Εισαγωγή στον πίνακα users
+        cursor.execute(
+            "INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, 'teacher')",
+            (username, email, hashed_password),
+        )
+        user_id = cursor.lastrowid
+
+        # Δημιουργία μοναδικού teacher ID
+        tid = database.generate_id("teacher")
+
+        # Εισαγωγή στον πίνακα teachers
+        cursor.execute(
+            "INSERT INTO teachers (tid, user_id) VALUES (?, ?)", (tid, user_id)
+        )
+
+        # Διαγραφή από pending
+        cursor.execute("DELETE FROM pending_teachers WHERE id = ?", (request_id,))
+        flash("Teacher approved successfully.", "success")
+
+    elif action == "reject":
+        cursor.execute("DELETE FROM pending_teachers WHERE id = ?", (request_id,))
+        flash("Teacher request rejected.", "info")
+
+    connection.commit()
+    connection.close()
+    return redirect(url_for("admin_teacher_requests"))
+
+
+@app.route("/admin/achievements")
+def admin_achievements():
+    if session.get("role") != "admin":
+        abort(403)
+
+    achievements = database.getAllAchievements()
+    return render_template("admin/achievements.html", achievements=achievements)
+
+
+@app.route("/add_achievement", methods=["POST"])
+def add_achievement():
+    if session.get("role") != "admin":
+        abort(403)
+
+    title = request.form.get("title")
+    description = request.form.get("description")
+    xp = request.form.get("xp")
+    ach_type = request.form.get("type")
+    target = request.form.get("target")
+
+    if not title or not description or not xp or not ach_type or not target:
+        flash("Please fill in all fields.", "error")
+        return redirect(url_for("admin_achievements"))
+
+    try:
+        xp = int(xp)
+        target = int(target)
+        if xp < 1 or target < 1:
+            raise ValueError("XP and target must be positive integers.")
+
+        database.insertAchievement(title, description, xp, ach_type, target)
+        flash("Achievement added successfully!", "success")
+
+    except ValueError:
+        flash("XP and target must be positive whole numbers.", "error")
+    except Exception as e:
+        flash(f"Error: {str(e)}", "error")
+
+    return redirect(url_for("admin_achievements"))
+
+
+@app.route("/edit_achievement", methods=["POST"])
+def edit_achievement():
+    if session.get("role") != "admin":
+        abort(403)
+
+    id = request.form["id"]
+    title = request.form["title"]
+    description = request.form["description"]
+    xp = request.form["xp"]
+    type_ = request.form["type"]
+    target = request.form["target"]
+
+    if not title or not description or not xp or not type_ or not target:
+        flash("Please fill in all fields.", "error")
+        return redirect(url_for("admin_achievements"))
+
+    try:
+        xp = int(xp)
+        target = int(target)
+        if xp < 1 or target < 1:
+            raise ValueError("XP and target must be positive integers.")
+
+        database.update_achievement(id, title, description, xp, type_, target)
+        flash("Achievement updated successfully!", "success")
+
+    except ValueError:
+        flash("XP and target must be positive whole numbers.", "error")
+    except Exception as e:
+        flash(f"Error: {str(e)}", "error")
+
+    return redirect(url_for("admin_achievements"))
+
+
+@app.route("/delete_achievement", methods=["POST"])
+def delete_achievement():
+    if session.get("role") != "admin":
+        abort(403)
+
+    achievement_id = request.form.get("achievement_id")
+
+    if achievement_id:
+        database.deleteAchievement(achievement_id)
+        flash("Achievement deleted.", "info")
+
+    return redirect(url_for("admin_achievements"))
 
 
 @app.route("/logout")
@@ -1075,7 +1515,9 @@ def no_access():
 
 
 # if __name__ == "__main__":
+#     clean_old_audio()  # Εκκαθάριση παλιών αρχείων πριν ξεκινήσει ο server
 #     app.run(debug=True)
+
 
 if __name__ == "__main__":
     import os

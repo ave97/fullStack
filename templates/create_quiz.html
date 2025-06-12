@@ -8,23 +8,27 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/create_quiz.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script defer src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
     <script src="{{ url_for('static', filename='js/quiz.js') }}"></script>
 </head>
 
 <body>
+    <!-- Sidebar -->
     <div class="sidebar">
         <div class="sidebar-header">
             <a href="{{ url_for('home') }}" class="logo-link">
                 <img src="{{ url_for('static', filename='images/logo.webp') }}" class="logo" alt="EduPlay Logo">
             </a>
         </div>
-        <ul>
+        <ul class="menu">
             <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
             <li><a href="{{ url_for('myAccount') }}">My Account</a></li>
             <li><a href="{{ url_for('create_quiz') }}">Create Quiz</a></li>
             <li><a href="{{ url_for('history') }}">History</a></li>
-            <li>My Students</li>
+            <li><a href="{{ url_for('teacher_student_scores') }}">Student Scores</a></li>
+            <li><a href="{{ url_for('manage_students')}}">Students List</a></li>
             <li>Progress</li>
             <li><a href="{{ url_for('logout')}}">Log out</a></li>
         </ul>
@@ -39,21 +43,32 @@
             <form id="quizForm" method="POST" action="{{ url_for('save_quiz') }}">
 
                 <div class="basics-container">
-                    <div class="flex-box left">
-                        <!-- Title -->
-                        <label for="quizTitle">Quiz Title: </label>
+                    <!-- Line 1: Quiz Title -->
+                    <div class="field-row">
+                        <label for="quizTitle">Quiz Title:</label>
                         <input type="text" id="quizTitle" name="quizTitle" required>
                     </div>
 
-                    <div class="flex-box right">
-                        <!-- Lesson -->
-                        <label for="quizLesson">Lesson: </label>
-                        <select id="quizLesson" name="quizLesson">
-                            <option value="Math">Math</option>
-                            <option value="History">History</option>
-                            <option value="Science">Science</option>
-                            <option value="General">General</option>
-                        </select>
+                    <!-- Line 2: Lesson + Class -->
+                    <div class="field-row double">
+                        <div class="field-group">
+                            <label for="quizLesson">Lesson:</label>
+                            <select id="quizLesson" name="quizLesson" required>
+                                <option value="">Select Lesson</option>
+                                <option value="Math">Math</option>
+                                <option value="History">History</option>
+                                <option value="Science">Science</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="quizClass">Class:</label>
+                            <select id="quizClass" name="quizClass" required>
+                                <option value="">Select Class</option>
+                                <option value="A">A</option>
+                                <option value="B">B</option>
+                                <option value="C">C</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -120,7 +135,7 @@
                     </div>
                 </div>
 
-                <button type="button" id="addQuestion">➕ Add Question</button>
+                <button type="button" id="addQuestion"><i class="fa-solid fa-plus"></i> Add Question</button>
 
                 <button type="submit">Submit Quiz</button>
             </form>

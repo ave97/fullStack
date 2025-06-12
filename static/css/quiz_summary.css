@@ -88,3 +88,40 @@ hr {
     transform: scale(1.05);
     background: linear-gradient(135deg, #3b82f6, #06b6d4);
 }
+
+.answer-block {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #f9f9f9;
+    padding: 15px 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.answer-content {
+    flex: 1;
+    /* παίρνει όλο τον διαθέσιμο χώρο */
+    margin-right: 15px;
+}
+
+.answer-status.correct i {
+    color: #2e7d32;
+}
+
+.answer-status.wrong i {
+    color: #c62828;
+}
+
+
+/* Responsive - σε μικρές οθόνες το βάζουμε κάτω */
+@media (max-width: 600px) {
+    .answer-block {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .answer-status {
+        margin-top: 10px;
+    }
+}

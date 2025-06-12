@@ -42,19 +42,36 @@
             <form id="quizForm" method="POST" action="{{ url_for('save_quiz', quiz_id=quiz['id']) }}">
                 <div class="basics-container">
                     <div class="flex-box left">
-                        <label for="quizTitle">Quiz Title: </label>
+                        <label for="quizTitle">Quiz Title:</label>
                         <input type="text" id="quizTitle" name="quizTitle" value="{{ quiz['title'] }}" required>
                     </div>
+
                     <div class="flex-box right">
-                        <label for="quizLesson">Lesson: </label>
-                        <select id="quizLesson" name="quizLesson">
-                            <option value="Math" {% if quiz['lesson']=='Math' %}selected{% endif %}>Math</option>
-                            <option value="History" {% if quiz['lesson']=='History' %}selected{% endif %}>History</option>
-                            <option value="Science" {% if quiz['lesson']=='Science' %}selected{% endif %}>Science</option>
-                            <option value="General" {% if quiz['lesson']=='General' %}selected{% endif %}>General</option>
-                        </select>
+                        <div class="sub-field">
+                            <label for="quizLesson">Lesson:</label>
+                            <select id="quizLesson" name="quizLesson" required>
+                                <option value="Math" {% if quiz['lesson']=='Math' %}selected{% endif %}>Math</option>
+                                <option value="History" {% if quiz['lesson']=='History' %}selected{% endif %}>History
+                                </option>
+                                <option value="Science" {% if quiz['lesson']=='Science' %}selected{% endif %}>Science
+                                </option>
+                                <option value="General" {% if quiz['lesson']=='General' %}selected{% endif %}>General
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="sub-field">
+                            <label for="quizClass">Class:</label>
+                            <select id="quizClass" name="quizClass" required>
+                                <option value="">Select Class</option>
+                                <option value="A" {% if quiz['class']=='A' %}selected{% endif %}>A</option>
+                                <option value="B" {% if quiz['class']=='B' %}selected{% endif %}>B</option>
+                                <option value="C" {% if quiz['class']=='C' %}selected{% endif %}>C</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
+
 
                 <div class="questionsContainer">
                     {% for question in quiz['questions'] %}
@@ -63,47 +80,65 @@
                             <h3>Question {{ loop.index }}</h3>
                             <label>Question Type: </label>
                             <select name="questionType_{{ loop.index }}" required>
-                                <option value="multiple_choice" {% if question['question_type']=='multiple_choice' %}selected{% endif %}>Multiple Choice</option>
-                                <option value="true_false" {% if question['question_type']=='true_false' %}selected{% endif %}>True/False</option>
-                                <option value="matching" {% if question['question_type']=='matching' %}selected{% endif %}>Matching</option>
+                                <option value="multiple_choice" {% if question['question_type']=='multiple_choice'
+                                    %}selected{% endif %}>Multiple Choice</option>
+                                <option value="true_false" {% if question['question_type']=='true_false' %}selected{%
+                                    endif %}>True/False</option>
+                                <option value="matching" {% if question['question_type']=='matching' %}selected{% endif
+                                    %}>Matching</option>
                             </select>
                         </div>
 
                         <div class="question-content">
                             <label>Question Text: </label>
-                            <input type="text" name="question_{{ loop.index }}" value="{{ question['question_text'] }}" required>
+                            <input type="text" name="question_{{ loop.index }}" value="{{ question['question_text'] }}"
+                                required>
                             <input type="hidden" name="question_id_{{ loop.index }}" value="{{ question['id'] }}">
                         </div>
 
-                        <div class="options-container" {% if question['question_type'] != 'multiple_choice' %}style="display: none;"{% endif %}>
+                        <div class="options-container" {% if question['question_type'] !='multiple_choice'
+                            %}style="display: none;" {% endif %}>
                             <label>Options: </label>
+                            {% set q_index = loop.index %}
                             {% for i in range(1, 5) %}
-                            <input type="text" name="option_{{ loop.index }}_{{ i }}" value="{{ question['options'][i-1] }}" required>
+                            <input type="text" name="option_{{ q_index }}_{{ i }}"
+                                value="{{ question['options'][i-1] }}" required>
                             {% endfor %}
                             <label>Correct Answer:</label>
                             <select name="correct_{{ loop.index }}">
-                                <option value="1">Option 1</option>
-                                <option value="2">Option 2</option>
-                                <option value="3">Option 3</option>
-                                <option value="4">Option 4</option>
+                                <option value="1" {% if question['correct_answer']==1 %}selected{% endif %}>Option 1
+                                </option>
+                                <option value="2" {% if question['correct_answer']==2 %}selected{% endif %}>Option 2
+                                </option>
+                                <option value="3" {% if question['correct_answer']==3 %}selected{% endif %}>Option 3
+                                </option>
+                                <option value="4" {% if question['correct_answer']==4 %}selected{% endif %}>Option 4
+                                </option>
                             </select>
                         </div>
 
-                        <div class="true-false-container" {% if question['question_type'] != 'true_false' %}style="display: none;"{% endif %}>
+                        <div class="true-false-container" {% if question['question_type'] !='true_false'
+                            %}style="display: none;" {% endif %}>
                             <label>Answer:</label>
                             <select name="trueFalseAnswer_{{ loop.index }}">
-                                <option value="true" {% if question['correct_answer'] == 'true' %}selected{% endif %}>True</option>
-                                <option value="false" {% if question['correct_answer'] == 'false' %}selected{% endif %}>False</option>
+                                <option value="true" {% if question['correct_answer']=='true' %}selected{% endif %}>True
+                                </option>
+                                <option value="false" {% if question['correct_answer']=='false' %}selected{% endif %}>
+                                    False</option>
                             </select>
                         </div>
 
-                        <div class="matching-container" {% if question['question_type'] != 'matching' %}style="display: none;"{% endif %}>
+                        <div class="matching-container" {% if question['question_type'] !='matching'
+                            %}style="display: none;" {% endif %}>
                             <label>Match items:</label>
                             <div class="matching-pairs">
-                                {% for i in range(0, question['matching_items']|length, 2) %}
+                                {% set q_index = loop.index %}
+                                {% for pair in question['matching_items'] %}
                                 <div class="matching-pair">
-                                    <input type="text" name="matching_{{ loop.index }}_{{ i+1 }}" value="{{ question['matching_items'][i] }}" required>
-                                    <input type="text" name="matching_{{ loop.index }}_{{ i+2 }}" value="{{ question['matching_items'][i+1] }}" required>
+                                    <input type="text" name="matching_{{ q_index }}_{{ loop.index0 * 2 + 1 }}"
+                                        value="{{ pair.item_1 }}" required>
+                                    <input type="text" name="matching_{{ q_index }}_{{ loop.index0 * 2 + 2 }}"
+                                        value="{{ pair.item_2 }}" required>
                                     <button type="button" class="removePairBtn">❌</button>
                                 </div>
                                 {% endfor %}

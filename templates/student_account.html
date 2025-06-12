@@ -39,55 +39,58 @@
     {% endif %}
     {% endwith %}
 
-    <div class="account-container">
-        <div class="profile-header">
-            <img src="{{ url_for('static', filename='images/avatars/default_avatar.png') }}" class="avatar">
-            <div class="user-info">
-                <h2>Username: {{ user.username }}</h2>
-                <div class="level-info">
-                    <p><strong>Level:</strong> {{ level_data.level }}</p>
-                    <p><strong>XP:</strong> {{ level_data.current_xp }} / {{ level_data.required_xp }} XP</p>
-                    <div class="xp-bar">
-                        <div class="xp-fill"
-                            style="width: {{ (level_data.current_xp / level_data.required_xp) * 100 }}%;"></div>
+    <div class="main-content">
+        <div class="account-container">
+            <div class="profile-header">
+                <img src="{{ url_for('static', filename='images/avatars/default_avatar.png') }}" class="avatar">
+                <div class="user-info">
+                    <h2>Username: {{ user.username }}</h2>
+                    <div class="level-info">
+                        <p><strong>Level:</strong> {{ level_data.level }}</p>
+                        <p><strong>XP:</strong> {{ level_data.current_xp }} / {{ level_data.required_xp }} XP</p>
+                        <div class="xp-bar">
+                            <div class="xp-fill"
+                                style="width: {{ (level_data.current_xp / level_data.required_xp) * 100 }}%;"></div>
+                        </div>
+                        <p><strong>Remaining:</strong> {{ level_data.remaining_xp }} XP to reach the next level</p>
                     </div>
-                    <p><strong>Remaining:</strong> {{ level_data.remaining_xp }} XP to reach the next level</p>
+                    <p><strong>Class: </strong> {{ user.class }}</p>
+                    <p><strong>Role:</strong> {{ user.role }}</p>
                 </div>
-                <p><strong>Role:</strong> {{ user.role }}</p>
+            </div>
+
+            <div id="info" style="margin-top: 20px;">
+                <div class="info-group">
+                    <label>Username:</label>
+                    <p>{{ user.username }}</p>
+                </div>
+                <div class="info-group">
+                    <label>Email:</label>
+                    <p>{{ user.email }}</p>
+                </div>
+                <div class="info-group">
+                    <button class="edit-btn" onclick="openEditModal()">Edit Info</button>
+                </div>
             </div>
         </div>
 
-        <div id="info" style="margin-top: 20px;">
-            <div class="info-group">
-                <label>Username:</label>
-                <p>{{ user.username }}</p>
+        <div id="editModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeEditModal()">&times;</span>
+                <h2>Edit Profile Information</h2>
+                <form action="{{ url_for('update_account') }}" method="POST">
+                    <label for="name">Username:</label>
+                    <input type="text" id="name" name="name" value="{{ user.username }}" required>
+
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" value="{{ user.email }}" required>
+
+                    <label for="password">New Password:</label>
+                    <input type="password" id="password" name="password" placeholder="Leave blank if not changing">
+
+                    <button type="submit" class="save-btn">Save Changes</button>
+                </form>
             </div>
-            <div class="info-group">
-                <label>Email:</label>
-                <p>{{ user.email }}</p>
-            </div>
-            <div class="info-group">
-                <button class="edit-btn" onclick="openEditModal()">Edit Info</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="editModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeEditModal()">&times;</span>
-            <h2>Edit Profile Information</h2>
-            <form action="{{ url_for('update_account') }}" method="POST">
-                <label for="name">Username:</label>
-                <input type="text" id="name" name="name" value="{{ user.username }}" required>
-
-                <label for="email">Email:</label>
-                <input type="email" id="email" name="email" value="{{ user.email }}" required>
-
-                <label for="password">New Password:</label>
-                <input type="password" id="password" name="password" placeholder="Leave blank if not changing">
-
-                <button type="submit" class="save-btn">Save Changes</button>
-            </form>
         </div>
     </div>
     <script>

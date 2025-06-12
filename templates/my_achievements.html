@@ -34,6 +34,7 @@
         <div class="achievement-card {% if not achievement.earned %}locked{% endif %}">
             <h2>{{ achievement.name }}</h2>
             <p>{{ achievement.description }}</p>
+            <small>XP: {{ achievement.xp }}</small>
             {% if achievement.earned %}
             <p class="date-earned">Earned on: {{ achievement.date_earned }}</p>
             {% else %}

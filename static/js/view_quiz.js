@@ -193,6 +193,7 @@ document.addEventListener("DOMContentLoaded", () => {
             id: quizId,
             quizTitle: document.getElementById("quizTitle").value,
             quizLesson: document.getElementById("quizLesson").value,
+            quizClass: document.getElementById("quizClass").value,
             questions: {}
         };
 
@@ -214,7 +215,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     const opt = question.querySelector(`input[name="option_${index}_${j}"]`);
                     if (opt) q[`option_${j}`] = opt.value;
                 }
-                const correct = question.querySelector(`input[name="correct_${index}"]`);
+                const correct = question.querySelector(`select[name="correct_${index}"]`);
                 if (correct) q.correct_answer = correct.value;
             } else if (type === "true_false") {
                 const tf = question.querySelector(`select[name="trueFalseAnswer_${index}"]`);
@@ -226,8 +227,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
             }
 
+            console.log("Correct answer for question", index, ":", q.correct_answer);
+
+
             const key = q.id ? q.id : `new_${index}`;
             quizData.questions[key] = q;
+
+            console.log("QUIZ DATA TO SEND:", quizData);
+
         });
 
         fetch(`/update_quiz/${quizId}`, {
