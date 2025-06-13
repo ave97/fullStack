@@ -201,6 +201,16 @@ button:hover {
     background-color: #0b6b87;
 }
 
+.view-stats {
+    text-decoration: none;
+    color: inherit;
+}
+
+.view-stats:hover {
+    text-decoration: none;
+    color: #3498db;
+    transform: scale(1.1);
+}
 
 /* ============================== */
 /*      RESPONSIVE TABLE         */

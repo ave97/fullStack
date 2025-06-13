@@ -527,8 +527,10 @@ def updateQuestion(
     option4=None,
     correctAnswer=None,
 ):
-    
-    print(f"Updating question {question_id} with text: {text}, type: {qtype}, options: {option1}, {option2}, {option3}, {option4}, correct answer: {correctAnswer}")
+
+    print(
+        f"Updating question {question_id} with text: {text}, type: {qtype}, options: {option1}, {option2}, {option3}, {option4}, correct answer: {correctAnswer}"
+    )
     conn = getConnection()
     cursor = conn.cursor()
     try:
@@ -592,7 +594,7 @@ def getAllStudents():
     cursor = conn.cursor()
     cursor.execute(
         """
-        SELECT s.id, u.username, s.class
+        SELECT s.sid, u.username, s.class
         FROM students s
         JOIN users u ON s.user_id = u.id
     """
@@ -606,7 +608,7 @@ def updateStudentClass(student_id, new_class):
     conn = getConnection()
     cursor = conn.cursor()
     cursor.execute(
-        "UPDATE students SET class = ? WHERE id = ?", (new_class, student_id)
+        "UPDATE students SET class = ? WHERE sid = ?", (new_class, student_id)
     )
     conn.commit()
     conn.close()
@@ -1265,9 +1267,9 @@ def getUniqueStudentsForTeacher(tid):
     return result or 0
 
 
-def getAverageScoreForTeacher(tid):
+def getAverageAccuracyForTeacher(tid):
     query = """
-        SELECT AVG(qr.score)
+        SELECT AVG(CAST(qr.correct_answers AS FLOAT) / qr.total_questions) * 100
         FROM quiz_results qr
         JOIN quiz q ON qr.quiz_id = q.id
         WHERE q.created_by = ?
@@ -1280,29 +1282,54 @@ def getAverageScoreForTeacher(tid):
     return round(avg, 2) if avg else 0
 
 
-def getCompletionRateForTeacher(tid):
+def getStudentCompletionRateForTeacher(tid):
     connection = getConnection()
     cursor = connection.cursor()
 
-    cursor.execute("SELECT COUNT(*) FROM quiz WHERE created_by = ?", (tid,))
-    total_quizzes = cursor.fetchone()[0]
-
+    # Πάρε τις μοναδικές τάξεις στις οποίες έχει δημιουργήσει quiz ο καθηγητής
     cursor.execute(
         """
-        SELECT COUNT(DISTINCT qr.quiz_id)
-        FROM quiz_results qr
-        JOIN quiz q ON qr.quiz_id = q.id
-        WHERE q.created_by = ?
+        SELECT DISTINCT target_class
+        FROM quiz
+        WHERE created_by = ?
     """,
         (tid,),
     )
-    completed = cursor.fetchone()[0]
+    classes = [row[0] for row in cursor.fetchall()]
+
+    if not classes:
+        connection.close()
+        return 0
+
+    # Υπολόγισε πόσοι μαθητές υπάρχουν συνολικά σε αυτές τις τάξεις
+    cursor.execute(
+        f"""
+        SELECT COUNT(*)
+        FROM students
+        WHERE class IN ({','.join(['?'] * len(classes))})
+    """,
+        classes,
+    )
+    total_students = cursor.fetchone()[0]
+
+    # Υπολόγισε πόσοι από αυτούς έχουν συμπληρώσει τουλάχιστον ένα quiz του καθηγητή
+    cursor.execute(
+        f"""
+        SELECT COUNT(DISTINCT qr.sid)
+        FROM quiz_results qr
+        JOIN quiz q ON qr.quiz_id = q.id
+        JOIN students s ON s.sid = qr.sid
+        WHERE q.created_by = ? AND s.class IN ({','.join(['?'] * len(classes))})
+    """,
+        [tid] + classes,
+    )
+    completed_students = cursor.fetchone()[0]
 
     connection.close()
 
-    if total_quizzes == 0:
+    if total_students == 0:
         return 0
-    return round((completed / total_quizzes) * 100)
+    return round((completed_students / total_students) * 100)
 
 
 def getCompletionRateForTeacher(tid):
@@ -1397,23 +1424,77 @@ def getRecentStudentActivity(tid, limit=5):
     ]
 
 
-def getStudentLeaderboard(limit=5):
+def getStudentLeaderboard(tid, limit=5):
     connection = getConnection()
     cursor = connection.cursor()
 
-    query = """
-        SELECT s.sid, u.username, s.total_points
+    # Get top students based on total_points
+    cursor.execute(
+        """
+        SELECT s.sid, u.username, s.class, s.total_points
         FROM students s
         JOIN users u ON s.user_id = u.id
         ORDER BY s.total_points DESC
         LIMIT ?
-    """
-    cursor.execute(query, (limit,))
-    results = cursor.fetchall()
-    connection.close()
+        """,
+        (limit,),
+    )
+    students = cursor.fetchall()
 
-    # Επιστρέφει λίστα από dictionaries
-    return [{"sid": row[0], "username": row[1], "points": row[2]} for row in results]
+    leaderboard = []
+
+    for sid, username, sclass, points in students:
+        # Get per-lesson accuracy (only for quizzes by this teacher)
+        cursor.execute(
+            """
+            SELECT q.lesson,
+                   SUM(qr.correct_answers) * 1.0 / SUM(qr.total_questions) * 100 AS accuracy
+            FROM quiz_results qr
+            JOIN quiz q ON q.id = qr.quiz_id
+            WHERE qr.sid = ? AND q.created_by = ?
+            GROUP BY q.lesson
+            """,
+            (sid, tid),
+        )
+        results = cursor.fetchall()
+        lesson_accuracies = {row[0]: round(row[1], 1) for row in results}
+
+        # Calculate overall average accuracy
+        if results:
+            avg_accuracy = round(sum(row[1] for row in results) / len(results), 2)
+        else:
+            avg_accuracy = "—"  # or 0 if you prefer
+
+        leaderboard.append(
+            {
+                "sid": sid,
+                "username": username,
+                "class": sclass,
+                "points": points,
+                "lesson_accuracies": lesson_accuracies,
+                "avg_accuracy": avg_accuracy,
+            }
+        )
+
+    connection.close()
+    return leaderboard
+
+
+def getLessonsForTeacher(tid):
+    conn = getConnection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT DISTINCT lesson
+        FROM quiz
+        WHERE created_by = ?
+        ORDER BY lesson
+    """,
+        (tid,),
+    )
+    lessons = [row[0] for row in cursor.fetchall()]
+    conn.close()
+    return lessons
 
 
 def getQuizResultsForTeacher(tid, quiz_id=None):

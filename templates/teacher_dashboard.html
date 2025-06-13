@@ -25,9 +25,7 @@
             <li><a href="{{ url_for('myAccount') }}">My Account</a></li>
             <li><a href="{{ url_for('create_quiz') }}">Create Quiz</a></li>
             <li><a href="{{ url_for('history') }}">History</a></li>
-            <li><a href="{{ url_for('teacher_student_scores') }}">Student Scores</a></li>
             <li><a href="{{ url_for('manage_students')}}">Students List</a></li>
-            <li>Progress</li>
             <li><a href="{{ url_for('logout') }}">Log out</a></li>
         </ul>
     </div>
@@ -43,9 +41,6 @@
         <div class="quick-actions">
             <a href="{{ url_for('create_quiz') }}" class="action-btn">
                 <i class="fas fa-pen"></i> Create Quiz
-            </a>
-            <a href="#" class="action-btn">
-                <i class="fas fa-chart-bar"></i> Analyze Progress
             </a>
         </div>
 
@@ -64,7 +59,7 @@
                         <p>{{ insights.total_quizzes }}</p>
                     </div>
                     <div class="insight-item">
-                        <h4><i class="fas fa-chart-line"></i> Avg. Score</h4>
+                        <h4><i class="fas fa-chart-line"></i> Avg. Accuracy Rate</h4>
                         <p>{{ insights.avg_score }}%</p>
                     </div>
                     <div class="insight-item">
@@ -169,15 +164,37 @@
                         <tr>
                             <th>#</th>
                             <th>Student</th>
-                            <th>Points</th>
+                            <th>Class</th>
+                            <th>Avg. Accuracy Rate</th>
+                            {% for lesson in all_lessons %}
+                            <th>{{ lesson }}</th>
+                            {% endfor %}
                         </tr>
                     </thead>
                     <tbody>
-                        {% for student in valid_students %}
+                        {% for student in leaderboard %}
                         <tr>
                             <td>{{ loop.index }}</td>
                             <td>{{ student.sid }}</td>
-                            <td>{{ student.points }} pts</td>
+                            <td>{{ student.class }}</td>
+                            <td>
+                                {% if student.avg_accuracy is not none %}
+                                {% set val = student.avg_accuracy | float %}
+                                {{ '{:.0f}'.format(val) if val == val|int else '{:.2f}'.format(val) }}%
+                                {% else %}
+                                —
+                                {% endif %}
+                            </td>
+                            {% for lesson in all_lessons %}
+                            <td>
+                                {% if lesson in student.lesson_accuracies %}
+                                {% set val = student.lesson_accuracies[lesson] | float %}
+                                {{ '{:.0f}'.format(val) if val == val|int else '{:.2f}'.format(val) }}%
+                                {% else %}
+                                —
+                                {% endif %}
+                            </td>
+                            {% endfor %}
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -186,44 +203,9 @@
                 <p class="no-data-message">No students have completed any quizzes yet.</p>
                 {% endif %}
             </div>
-
-            <!-- Chart -->
-            {% if chart_data %}
-            <div class="chart-container">
-                <h2><i class="fas fa-chart-line"></i> Student Performance per Quiz</h2>
-                <canvas id="performanceChart"></canvas>
-            </div>
-            {% endif %}
         </div>
 
     </div>
-    <script>
-        const chartData = {{ chart_data | tojson }};
-        const ctx = document.getElementById('performanceChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: chartData.labels,
-                datasets: [{
-                    label: 'Average Score (%)',
-                    data: chartData.scores,
-                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 100
-                    }
-                }
-            }
-        });
-    </script>
-
 </body>
 
 </html>

@@ -23,9 +23,7 @@
                     class="{% if request.endpoint == 'myAccount' %}active{% endif %}">My Account</a></li>
             <li><a href="{{ url_for('create_quiz') }}">Create Quiz</a></li>
             <li><a href="{{ url_for('history') }}">History</a></li>
-            <li><a href="{{ url_for('teacher_student_scores') }}">Student Scores</a></li>
             <li><a href="{{ url_for('manage_students')}}">Students List</a></li>
-            <li>Progress</li>
             <li><a href="{{ url_for('logout') }}">Log out</a></li>
         </ul>
     </div>

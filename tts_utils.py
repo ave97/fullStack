@@ -8,17 +8,20 @@ from google.oauth2 import service_account
 
 app = Flask(__name__)
 
+
+
 # Ρύθμιση credentials για Google Cloud TTS
 key_json = os.getenv("GOOGLE_CREDENTIALS")
 credentials_dict = json.loads(key_json)
 credentials = service_account.Credentials.from_service_account_info(credentials_dict)
 
+
 # === 1. Δημιουργία ή επαναχρήση .mp3 ===
 def generate_tts_audio_if_needed(text, filename):
-    path = f"static/sounds/{filename}.mp3"
+    path = f"static/sounds/questions/{filename}.mp3"
     if not os.path.exists(path):
         print(f"Δημιουργία ήχου για: {filename}")
-        client = texttospeech.TextToSpeechClient()
+        client = texttospeech.TextToSpeechClient(credentials=credentials)
 
         ssml_text = f"""
         <speak>
@@ -69,7 +72,7 @@ def tts_question(question_id):
 
 
 # === 4. Script καθαρισμού παλιών αρχείων ===
-def clean_old_audio(folder="static/sound/", days=30):
+def clean_old_audio(folder="static/sounds/questions", days=30):
     now = time.time()
     cutoff = now - days * 86400
 

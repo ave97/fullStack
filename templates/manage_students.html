@@ -7,6 +7,7 @@
     <title>Manage Students | EduPlay</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/manage_students.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 
 <body>
@@ -23,10 +24,8 @@
             <li><a href="{{ url_for('myAccount') }}">My Account</a></li>
             <li><a href="{{ url_for('create_quiz') }}">Create Quiz</a></li>
             <li><a href="{{ url_for('history') }}">History</a></li>
-            <li><a href="{{ url_for('teacher_student_scores') }}">Student Scores</a></li>
             <li><a href="{{ url_for('manage_students')}}"
                     class="{% if request.endpoint == 'manage_students' %}active{% endif %}">Students List</a></li>
-            <li>Progress</li>
             <li><a href="{{ url_for('logout') }}">Log out</a></li>
         </ul>
     </div>
@@ -53,14 +52,15 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Username</th>
+                            <th>Student ID</th>
                             <th>Change Class</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for student in students %}
                         <tr>
-                            <td>{{ student[1] }}</td>
+                            <td>{{ student[0] }}</td>
                             <td>
                                 <form method="POST">
                                     <input type="hidden" name="student_id" value="{{ student[0] }}">
@@ -71,6 +71,10 @@
                                     </select>
                                     <button type="submit">Change</button>
                                 </form>
+                            </td>
+                            <td><a href="{{ url_for('student_stats', sid=student[0]) }}" class="view-stats">
+                                    <i class="fa-solid fa-chart-simple"></i> View Stats
+                                </a>
                             </td>
                         </tr>
                         {% endfor %}

@@ -91,7 +91,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 <input type="text" name="option_${questionCount}_2" required>
                 <input type="text" name="option_${questionCount}_3" required>
                 <input type="text" name="option_${questionCount}_4" required>
-                <input type="text" name="correct_${questionCount}" placeholder="Correct Answer" required>
+                <label>Correct Answer:</label>
+                <select name="correct_${questionCount}" required>
+                    <option value="1">Answer 1</option>
+                    <option value="2">Answer 2</option>
+                    <option value="3">Answer 3</option>
+                    <option value="4">Answer 4</option>
+                </select>
             </div>
 
             <div class="true-false-container" style="display: none;">

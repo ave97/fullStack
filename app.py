@@ -14,7 +14,7 @@ import database, random, json
 from werkzeug.security import check_password_hash, generate_password_hash
 from quiz import Question, Quiz
 import os, re, io, csv, zipfile, traceback
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from leveling import get_student_level_info
 from tts_utils import generate_tts_audio_if_needed, clean_old_audio
 
@@ -201,16 +201,15 @@ def teacher_dashboard():
     insights = {
         "total_students": database.getUniqueStudentsForTeacher(teacher_id),
         "total_quizzes": len(latest_quizzes),
-        "avg_score": database.getAverageScoreForTeacher(teacher_id),
-        "completion_rate": database.getCompletionRateForTeacher(teacher_id),
+        "avg_score": database.getAverageAccuracyForTeacher(teacher_id),
+        "completion_rate": database.getStudentCompletionRateForTeacher(teacher_id),
         "top_quizzes": top_quizzes,
     }
 
     # Leaderboard
-    leaderboard = database.getStudentLeaderboard()
+    leaderboard = database.getStudentLeaderboard(teacher_id)
+    all_lessons = database.getLessonsForTeacher(teacher_id)
 
-    # Chart data
-    chart_data = database.getChartDataForTeacher(teacher_id)
 
     return render_template(
         "teacher_dashboard.html",
@@ -220,7 +219,7 @@ def teacher_dashboard():
         activity_feed=activity_feed,
         insights=insights,
         leaderboard=leaderboard,
-        chart_data=chart_data,
+        all_lessons=all_lessons
     )
 
 
@@ -257,14 +256,19 @@ def student_dashboard():
     recent_quizzes = cursor.fetchall()
 
     # Quiz-to-do
+    cursor.execute("SELECT class FROM students WHERE sid = ?", (sid,))
+    student_class = cursor.fetchone()[0]
+
+    print(f"Student class: {student_class}")
+
     cursor.execute(
         """
         SELECT q.id, q.title
         FROM quiz q
         LEFT JOIN quiz_results r ON q.id = r.quiz_id AND r.sid = ?
-        WHERE r.quiz_id IS NULL
+        WHERE r.quiz_id IS NULL AND q.target_class = ?
     """,
-        (sid,),
+        (sid, student_class),
     )
     quizzes_to_do = cursor.fetchall()
     quizzes = [{"id": q[0], "title": q[1]} for q in quizzes_to_do]
@@ -1011,6 +1015,131 @@ def manage_students():
     return render_template("manage_students.html", students_by_class=students_by_class)
 
 
+@app.route("/teacher/student/<sid>/stats", methods=["GET", "POST"])
+def student_stats(sid):
+    if "user" not in session or session["role"] != "teacher":
+        return redirect(url_for("no_access"))
+
+    selected_lesson = request.form.get("lesson") if request.method == "POST" else None
+
+    conn = database.getConnection()
+    cursor = conn.cursor()
+
+    query = """
+        SELECT q.title, r.score, r.correct_answers, r.total_questions, r.completed_at
+        FROM quiz_results r
+        JOIN quiz q ON q.id = r.quiz_id
+        WHERE r.sid = ?
+    """
+    params = [sid]
+
+    if selected_lesson:
+        query += " AND q.lesson = ?"
+        params.append(selected_lesson)
+
+    query += " ORDER BY r.completed_at DESC"
+    cursor.execute(query, params)
+    results = cursor.fetchall()
+
+    enhanced_results = []
+
+    for r in results:
+        correct_answer = r[2]
+        total_questions = r[3]
+        accuracy = (correct_answer / total_questions) * 100
+        final_result = r + (round(accuracy),)
+        enhanced_results.append(final_result)
+
+    cursor.execute(
+        "SELECT sid, class, xp, total_points FROM students s JOIN users u ON u.id = s.user_id WHERE s.sid = ?",
+        (sid,),
+    )
+    student_info = cursor.fetchone()
+
+    conn.close()
+    return render_template(
+        "student_stats.html",
+        results=enhanced_results,
+        student=student_info,
+        selected_lesson=selected_lesson,
+    )
+
+
+@app.route("/teacher/progress", methods=["GET", "POST"])
+def teacher_progress():
+    if "user" not in session or session["role"] != "teacher":
+        return redirect(url_for("no_access"))
+
+    teacher = database.getTeacherInfo(session["user"])
+    tid = teacher.getTid()  # ή teacher["id"], ανάλογα τη δομή σου
+
+    conn = database.getConnection()
+    cursor = conn.cursor()
+
+    # Φέρνουμε όλα τα κουίζ που έχει δημιουργήσει ο καθηγητής
+    cursor.execute(
+        "SELECT id, title FROM quiz WHERE created_by = ? ORDER BY title ASC",
+        (tid,),
+    )
+    quizzes = cursor.fetchall()
+
+    selected_quiz_id = request.form.get("quiz_id") if request.method == "POST" else None
+    quiz_data = []
+
+    if selected_quiz_id:
+        cursor.execute(
+            """
+            SELECT s.sid, r.score, r.correct_answers, r.total_questions, r.completed_at
+            FROM quiz_results r
+            JOIN students s ON s.sid = r.sid
+            WHERE r.quiz_id = ?
+            ORDER BY r.completed_at DESC
+            """,
+            (selected_quiz_id,),
+        )
+        quiz_data = cursor.fetchall()
+
+    conn.close()
+
+    return render_template(
+        "teacher_progress.html",
+        quizzes=quizzes,
+        selected_quiz_id=selected_quiz_id,
+        quiz_data=quiz_data,
+    )
+
+
+@app.route("/teacher/chart-data")
+def teacher_chart_data():
+    if "user" not in session or session["role"] != "teacher":
+        return redirect(url_for("no_access"))
+
+    teacher = database.getTeacherInfo(session["user"])
+    tid = teacher.getTid()
+
+    conn = database.getConnection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT q.lesson, ROUND(AVG(r.score), 2) as avg_score
+        FROM quiz q
+        JOIN quiz_results r ON r.quiz_id = q.id
+        WHERE q.created_by = ?
+        GROUP BY q.id
+        ORDER BY q.lesson
+    """,
+        (tid,),
+    )
+    data = cursor.fetchall()
+    conn.close()
+
+    labels = [row[0] for row in data]
+    scores = [row[1] for row in data]
+
+    return jsonify({"labels": labels, "data": scores})
+
+
 @app.route("/play_quiz/<int:quiz_id>")
 def play_quiz(quiz_id):
     if "user" not in session or session["role"] != "student":
@@ -1034,7 +1163,7 @@ def play_quiz(quiz_id):
         question_text = q["question_text"]
 
         # Δημιουργία ήχου για την ερώτηση (αν δεν υπάρχει ήδη)
-        filename = f"quiz_{quiz_data["id"]}_question_{question_id}"
+        filename = f"quiz_{quiz_data['id']}_question_{question_id}"
         audio_path = generate_tts_audio_if_needed(question_text, filename)
 
         question_data = {
@@ -1043,7 +1172,7 @@ def play_quiz(quiz_id):
             "question_type": q["question_type"],
             "options": [q["option_1"], q["option_2"], q["option_3"], q["option_4"]],
             "correct_answer": q["correct_answer"],
-            "audio_url": "/" + audio_path,  # ➕ Εδώ στέλνεις τον ήχο στο frontend
+            "audio_url": "/" + audio_path,
         }
 
         # ➕ μόνο αν είναι matching
@@ -1175,6 +1304,70 @@ def quiz_summary(quiz_id):
     return render_template("quiz_summary.html", summary=summary)
 
 
+@app.route("/available_quizzes")
+def available_quizzes():
+    if "user" not in session or session["role"] != "student":
+        return redirect(url_for("no_access"))
+
+    sid = database.getStudentInfo(session["user"])[0]
+    conn = database.getConnection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT class FROM students WHERE sid = ?", (sid,))
+    student_class = cursor.fetchone()
+
+    # Φέρνουμε όλα τα κουίζ
+    cursor.execute(
+        "SELECT id, title, lesson FROM quiz WHERE target_class= ?", (student_class)
+    )
+    all_quizzes = cursor.fetchall()
+
+    print(f"All quizzes: {all_quizzes}")
+
+    quizzes_data = []
+
+    for quiz_id, title, lesson in all_quizzes:
+        # Πόσες φορές έχει κάνει ο μαθητής αυτό το quiz;
+        cursor.execute(
+            "SELECT COUNT(*), MAX(completed_at) FROM quiz_results WHERE quiz_id = ? AND sid = ?",
+            (quiz_id, sid),
+        )
+        count, last_date = cursor.fetchone()
+        count = count or 0
+
+        can_play = False
+        reason = ""
+
+        if count < 2:
+            if last_date is None:
+                can_play = True
+            else:
+                last_dt = datetime.strptime(last_date, "%Y-%m-%d %H:%M:%S")
+                last_dt = last_dt.replace(tzinfo=UTC)  # κάνε UTC-aware
+
+                now = datetime.now(UTC)
+                hours_passed = (now - last_dt).total_seconds() / 3600
+                if hours_passed >= 48:
+                    can_play = True
+                else:
+                    reason = f"Available again in {round(48 - hours_passed)} hours"
+
+        quizzes_data.append(
+            {
+                "id": quiz_id,
+                "title": title,
+                "lesson": lesson,
+                "attempts": count,
+                "can_play": can_play,
+                "reason": reason,
+            }
+        )
+
+    conn.close()
+
+    return render_template("available_quizzes.html", quizzes=quizzes_data)
+
+
 @app.route("/my_quizzes")
 def my_quizzes():
     if "user" not in session:
@@ -1207,12 +1400,10 @@ def my_achievements():
 
     user_id = session["user_id"]
 
-    # Πάρε όλα τα achievements
     all_achievements = (
         database.getAllAchievements()
     )  # επιστρέφει (id, name, description, type, target, xp)
 
-    # Πάρε την πρόοδο του χρήστη
     user_progress = database.getUserAchievementProgress(user_id)
     # Μορφή: {achievement_id: {"current_value": x, "unlocked": bool, "updated_at": timestamp}}
 

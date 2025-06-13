@@ -9,6 +9,8 @@ document.addEventListener('DOMContentLoaded', function () {
     let matches = [];
     let userAnswers = [];
     let totalSpins = 0;
+    let questionLocked = false;
+
 
     const scoreDisplay = document.getElementById('score');
     const timerDisplay = document.getElementById('timer');
@@ -43,6 +45,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     spinButton.addEventListener('click', function () {
+        if (currentWinningSlice) {
+            currentWinningSlice.classList.remove('slice-blink', 'slice-pop');
+        }
         if (!startTime) startTime = Date.now();
 
         if (idleRotationInterval) {
@@ -109,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const audio = document.getElementById("ttsAudio");
         const filename = `quiz_${quizData.id}_question_${question.id}`;
-        audio.src = `/static/sounds/${filename}.mp3`;
+        audio.src = `/static/sounds/questions/${filename}.mp3`;
         audio.play();
 
         const wrapper = document.createElement('div');
@@ -252,6 +257,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function checkAnswer(selected, correct, question, userResponse) {
+        if (questionLocked) return;
+        questionLocked = true;
         const isCorrect = selected === correct;
         if (isCorrect) {
             score += pendingPoints;
@@ -264,14 +271,15 @@ document.addEventListener('DOMContentLoaded', function () {
         scoreDisplay.textContent = `Score: ${score}`;
         userAnswers.push({ question, correct: isCorrect, userResponse });
 
-        if (currentWinningSlice) {
-            currentWinningSlice.classList.remove('slice-blink', 'slice-pop');
-        }
+        // if (currentWinningSlice) {
+        //     currentWinningSlice.classList.remove('slice-blink', 'slice-pop');
+        // }
 
         setTimeout(() => {
             scoreDisplay.classList.remove("bling", "win", "lose");
             currentQuestionIndex++;
             questionBox.innerHTML = '<div>Spin the wheel</div>';
+            questionLocked = false;
 
             document.getElementById('wheel-container').scrollIntoView({
                 behavior: 'smooth',
