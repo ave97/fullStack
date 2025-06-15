@@ -1,0 +1,50 @@
+
+    const qType = document.getElementById(`questionType_${questionCount}`);
+    qType.addEventListener("change", function () {
+        const questionType = this.value;
+        var optionsContainer = this.closest(".question-type");
+        console.log(questionCount.toLocaleString);
+        if (optionsContainer) {
+            console.log("There is sth");
+        } else {
+            console.log("It is null");
+        }
+    });
+    
+    // const questionTypeSelect = document.getElementById(`questionType_${questionCount}`);
+    // const optionsContainer = document.getElementById(`optionContainer_${questionCount}`);
+
+    // questionTypeSelect.addEventListener("change", function () {
+    //     const questionType = this.value;
+    //     console.log("0");
+
+    //     // Κρύβουμε αρχικά όλες τις επιλογές
+    //     optionsContainer.innerHTML = "";
+
+    //     // Ανάλογα με τον τύπο της ερώτησης, προσθέτουμε τα κατάλληλα πεδία
+    //     if (questionType === "multiple_choice") {
+    //         console.log("1");
+    //         optionsContainer.innerHTML = `
+    //                 <label>Options: </label>
+    //                 <input type="text" name="option_${questionCount}_1" placeholder="Answer 1" required>
+    //                 <input type="text" name="option_${questionCount}_2" placeholder="Answer 2" required>
+    //                 <input type="text" name="option_${questionCount}_3" placeholder="Answer 3" required>
+    //                 <input type="text" name="option_${questionCount}_4" placeholder="Answer 4" required>
+    //             `;
+    //         console.log(optionsContainer.innerHTML)
+    //     } else if (questionType === "true_false") {
+    //         console.log("2");
+    //         optionsContainer.innerHTML = `
+    //                 <label>Options: </label>
+    //                 <input type="text" name="option_${questionCount}_1" placeholder="True" required>
+    //                 <input type="text" name="option_${questionCount}_2" placeholder="False" required>
+    //             `;
+    //     } else if (questionType === "matching") {
+    //         console.log("3");
+    //         optionsContainer.innerHTML = `
+    //                 <label>Options: </label>
+    //                 <input type="text" name="option_${questionCount}_1" placeholder="Option 1" required>
+    //                 <input type="text" name="option_${questionCount}_2" placeholder="Option 2" required>
+    //             `;
+    //     }
+    // });

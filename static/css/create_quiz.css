@@ -1,0 +1,336 @@
+/* ==================== */
+/* BASE STYΛES          */
+/* ==================== */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+body {
+    background-color: #f4f6f8;
+    display: flex;
+}
+
+/* Περιεχόμενο σελίδας μετά το sidebar */
+.content {
+    margin-left: 270px;
+    padding: 40px;
+    width: calc(100% - 270px);
+}
+
+.page-title {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 30px;
+    margin-top: 20px;
+
+    display: block;
+    /* ή αν έχει flex, κάνε override */
+}
+
+/* Βασικές Ρυθμίσεις Quiz Creation */
+.quiz_creation {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto 15px;
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0px 5px 20px rgba(0, 0, 0, 0.15);
+
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+/* Βασικά Στοιχεία (τίτλος και μάθημα) */
+.basics-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.field-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.field-row label {
+    min-width: 100px;
+    font-weight: bold;
+    color: #073b4c;
+}
+
+.field-row input,
+.field-row select {
+    flex: 1;
+    padding: 8px;
+    border: 1.5px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+/* Line 2: 2 columns side by side */
+.field-row.double {
+    justify-content: space-between;
+}
+
+.field-group {
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+    margin-right: 10px;
+    gap: 10px;
+    align-items: center;
+}
+
+.field-group:last-child {
+    margin-right: 0;
+}
+
+
+/* Styling ετικετών και inputs */
+.quiz_creation label {
+    font-size: 16px;
+    font-weight: bold;
+    color: #1D3557;
+    flex: 0 0 150px;
+    text-align: right;
+}
+
+.quiz_creation input,
+.quiz_creation select {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: all 0.3s ease-in-out;
+}
+
+/* Container για ερωτήσεις */
+#questionsContainer {
+    width: 100%;
+    margin-top: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    /* επιτρέπει wrap */
+    gap: 20px;
+    justify-content: flex-start;
+}
+
+/* Ερωτήσεις */
+.question {
+    background: #FAFAFA;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    box-shadow: 0px 3px 10px rgba(0, 0, 0, 0.1);
+
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 10px;
+    width: 100%;
+    max-width: none;
+}
+
+/* Στοιχεία μέσα στην ερώτηση */
+.question h3 {
+    flex: 1 1 100%;
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+
+.question-type {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1 1 auto;
+}
+
+.question-type select {
+    min-width: 200px;
+    /* Περιορισμός ελάχιστου πλάτους */
+    max-width: 300px;
+    /* Μη ξεπερνάει πολύ το πλαίσιο */
+    padding: 6px 10px;
+    font-size: 16px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    flex-shrink: 0;
+    /* Να μη μικραίνει υπερβολικά */
+}
+
+.selectQuestionType {
+    width: 100%;
+    text-align: center;
+    color: rgb(202, 73, 73);
+    font-size: large;
+}
+
+/* Εμφάνιση / Απόκρυψη ερωτήσεων */
+.question-content {
+    width: 100%;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+/* Containers επιλογών */
+.options-container,
+.true-false-container,
+.matching-container {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.options-container {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+}
+
+.options-container input {
+    width: 100%;
+}
+
+/* True/False */
+.true-false-container {
+    display: none;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+}
+
+.true-false-container select {
+    max-width: 250px;
+}
+
+/* Matching */
+.matching-container {
+    display: none;
+    gap: 10px;
+}
+
+/* Επιλογές και inputs */
+select {
+    width: 100%;
+}
+
+.correct_answer {
+    max-width: 250px;
+}
+
+/* Κουμπιά */
+.quiz_creation button {
+    width: 100%;
+    max-width: 300px;
+    padding: 12px;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    margin: 10px auto;
+    display: block;
+}
+
+#addQuestion {
+    background-color: #FFD166;
+    color: #333;
+}
+
+#addQuestion:hover {
+    background-color: #EFB800;
+}
+
+.removeQuestion {
+    background-color: #ffb2b2;
+    border: 2px solid red;
+}
+
+.removeQuestion:hover {
+    background-color: rgb(255, 79, 79);
+    color: white;
+}
+
+.quiz_creation button[type="submit"] {
+    background-color: #118AB2;
+    color: white;
+}
+
+.quiz_creation button[type="submit"]:hover {
+    background-color: #0d6d9b;
+}
+
+.matching-pair {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    margin-bottom: 10px;
+    flex: 1;
+    padding: 8px;
+}
+
+.removeMatchingBtn {
+    background-color: #f44336;
+    color: white;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+.removeMatchingBtn:hover {
+    background-color: #ff5a5a;
+}
+
+.addMatchingBtn {
+    background-color: rgb(72, 233, 72);
+}
+
+.addMatchingBtn:hover {
+    background-color: #40ff2f;
+}
+
+/* Responsive Layout */
+@media (max-width: 768px) {
+    .quiz_creation {
+        flex-direction: column;
+        padding: 15px;
+    }
+
+    .basics-container {
+        flex-direction: column;
+    }
+
+    .flex-box.left,
+    .flex-box.right {
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+
+    #questionsContainer {
+        flex-direction: column;
+    }
+
+    .question {
+        flex-direction: column;
+        width: 100%;
+        max-width: none;
+    }
+
+    .options-container,
+    .true-false-container,
+    .matching-container {
+        flex-direction: column;
+    }
+}

@@ -1,0 +1,127 @@
+/* quiz_summary.css */
+
+body {
+    font-family: "Segoe UI", sans-serif;
+    background-color: #f3f4f6;
+    margin: 0;
+    padding: 0;
+    color: #333;
+}
+
+.container {
+    max-width: 800px;
+    margin: 40px auto;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+h2 {
+    text-align: center;
+    color: #118AB2;
+    margin-bottom: 20px;
+}
+
+h3 {
+    margin-top: 30px;
+    color: #073b4c;
+}
+
+p {
+    margin: 8px 0;
+    font-size: 16px;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid #ddd;
+    margin: 20px 0;
+}
+
+.answer-block {
+    background-color: #f9f9f9;
+    padding: 15px 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.correct {
+    color: #2e7d32;
+    font-weight: bold;
+}
+
+.wrong {
+    color: #c62828;
+    font-weight: bold;
+}
+
+@media (max-width: 600px) {
+    .container {
+        margin: 20px;
+        padding: 20px;
+    }
+
+    p {
+        font-size: 15px;
+    }
+}
+
+.back-btn-container {
+    text-align: center;
+    margin-top: 30px;
+}
+
+.back-btn {
+    display: inline-block;
+    background: linear-gradient(135deg, #06b6d4, #3b82f6);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 30px;
+    text-decoration: none;
+    font-weight: bold;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+    transform: scale(1.05);
+    background: linear-gradient(135deg, #3b82f6, #06b6d4);
+}
+
+.answer-block {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #f9f9f9;
+    padding: 15px 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.answer-content {
+    flex: 1;
+    /* παίρνει όλο τον διαθέσιμο χώρο */
+    margin-right: 15px;
+}
+
+.answer-status.correct i {
+    color: #2e7d32;
+}
+
+.answer-status.wrong i {
+    color: #c62828;
+}
+
+
+/* Responsive - σε μικρές οθόνες το βάζουμε κάτω */
+@media (max-width: 600px) {
+    .answer-block {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .answer-status {
+        margin-top: 10px;
+    }
+}
