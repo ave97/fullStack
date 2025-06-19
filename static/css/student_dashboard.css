@@ -1,0 +1,579 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+body {
+    display: flex;
+    background-color: #f4f6f8;
+}
+
+/* Main Content */
+.main-content {
+    margin-left: 250px;
+    /* Same width as sidebar */
+    padding: 40px;
+    flex: 1;
+}
+
+.welcome-section h1 {
+    font-size: 32px;
+    color: #333;
+}
+
+.welcome-section p {
+    font-size: 18px;
+    color: #666;
+    margin-top: 10px;
+}
+
+/* Cards */
+.cards-container {
+    margin-top: 40px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.card {
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card h2 {
+    margin-bottom: 15px;
+    color: #1c4857;
+}
+
+.quiz-list {
+    list-style-type: none;
+}
+
+.quiz-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 10px 0;
+}
+
+.play-btn {
+    background-color: #007bff;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: background 0.3s;
+}
+
+.play-btn:hover {
+    background-color: #0056b3;
+}
+
+/* Badges */
+.badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.badge,
+.second-atmpt {
+    background-color: #ffd166;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    position: relative;
+    cursor: pointer;
+}
+
+.second-atmpt {
+    cursor: auto;
+}
+
+/* Tooltip κρυφό από default */
+.badge::after {
+    content: attr(data-description);
+    position: absolute;
+    top: 150%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.75);
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+    font-size: 13px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 1000;
+    max-width: 250px;
+    width: max-content;
+}
+
+/* Μικρό τρίγωνο κάτω από το tooltip */
+.badge::before {
+    content: '';
+    position: absolute;
+    top: 110%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: transparent transparent rgba(0, 0, 0, 0.75) transparent;
+    /* βελάκι προς τα πάνω */
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+/* Εμφάνιση tooltip στο hover */
+.badge:hover::after,
+.badge:hover::before {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+
+/* Notifications */
+.notifications-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.notification-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f9f9f9;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+}
+
+.notification-item span {
+    font-size: 16px;
+    color: #555;
+}
+
+.play-btn {
+    background-color: #007bff;
+    color: white;
+    padding: 8px 14px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 0.9em;
+    transition: background 0.3s;
+}
+
+.play-btn:hover {
+    background-color: #0056b3;
+}
+
+.extras-section {
+    margin-top: 40px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+}
+
+/* Recent quizzes */
+.recent-quizzes {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    flex: 1 1 400px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.recent-quizzes h2 {
+    margin-bottom: 15px;
+    color: #1c4857;
+    text-align: center;
+}
+
+.recent-quiz-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.recent-quiz-list li {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    font-size: 16px;
+}
+
+.quiz-title {
+    font-weight: bold;
+    color: #333;
+}
+
+.quiz-score {
+    color: #06d6a0;
+    font-weight: bold;
+}
+
+/* Insights */
+.insights {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    flex: 1 1 400px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.insights h2 {
+    margin-bottom: 15px;
+    color: #1c4857;
+    text-align: center;
+}
+
+.insight-item {
+    margin: 10px 0;
+    text-align: center;
+}
+
+.insight-item h4 {
+    font-size: 18px;
+    color: #555;
+    margin-bottom: 5px;
+}
+
+.insight-item p {
+    font-size: 24px;
+    color: #007bff;
+    font-weight: bold;
+}
+
+.animated-number {
+    transition: color 0.3s ease;
+    font-weight: bold;
+}
+
+/* Chart */
+.chart-container {
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    padding: 20px 30px;
+    /* margin-top: 30px; */
+    margin: 40px auto;
+    width: 100%;
+    max-width: 800px;
+    box-sizing: border-box;
+}
+
+.chart-container h2 {
+    font-size: 22px;
+    margin-bottom: 20px;
+    color: #1c4857;
+    text-align: center;
+}
+
+.chart-subtitle {
+    text-align: center;
+    color: #666;
+    font-size: 14px;
+    margin-top: -10px;
+    margin-bottom: 20px;
+}
+
+#xpChart {
+    width: 100% !important;
+    height: auto !important;
+}
+
+
+/* Fade-in animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Εφαρμογή fade-in σε κάρτες */
+.card,
+.recent-quizzes,
+.insights,
+.notifications {
+    animation: fadeIn 1s ease-out;
+}
+
+.daily-bonus-card {
+    background-color: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    animation: fadeIn 0.8s ease-in-out;
+}
+
+.bonus-btn {
+    margin-top: 15px;
+    background-color: #ffd166;
+    color: #333;
+    font-weight: bold;
+    padding: 12px 24px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.bonus-btn:hover {
+    background-color: #efb800;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Button */
+.bonus-btn {
+    background-color: #FFD166;
+    color: #333;
+    font-weight: bold;
+    padding: 12px 20px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.bonus-btn:hover {
+    background-color: #efb800;
+}
+
+/* Modal styling */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.modal-content {
+    background: #fff;
+    border-radius: 10px;
+    width: 80%;
+    max-width: 600px;
+    margin: 5% auto;
+    padding: 30px;
+    text-align: center;
+    position: relative;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+.close {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    font-size: 28px;
+    cursor: pointer;
+    color: #888;
+}
+
+.close:hover {
+    color: #000;
+}
+
+.card-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    justify-items: center;
+    max-width: 340px;
+    margin: 20px auto 0 auto;
+}
+
+.flip-card {
+    width: 140px;
+    height: 200px;
+    perspective: 1000px;
+    cursor: pointer;
+}
+
+.flip-inner {
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+    position: relative;
+}
+
+.flip-card.flipped .flip-inner {
+    transform: rotateY(180deg);
+}
+
+.flip-front,
+.flip-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.flip-front {
+    background: #ffd166;
+}
+
+.flip-back {
+    background: #118ab2;
+    color: white;
+    transform: rotateY(180deg);
+}
+
+#resultMessage {
+    margin-top: 20px;
+    font-size: 26px;
+    font-weight: bold;
+    color: #118ab2;
+}
+
+@media (max-width: 500px) {
+    .modal-content {
+        width: 90%;
+        overflow-x: auto;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes blink {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.75;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+.highlighted-card {
+    animation: blink 1s ease-in-out infinite;
+}
+
+.disabled-btn {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.bonus-list {
+    list-style: none;
+    padding: 0;
+}
+
+.bonus-list li {
+    background: #e0f7fa;
+    color: #007b8a;
+    padding: 10px 16px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.level-card .level-info {
+    font-size: 16px;
+    line-height: 1.6;
+    color: #333;
+}
+
+.xp-bar {
+    width: 100%;
+    height: 16px;
+    background-color: #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+.xp-fill {
+    height: 100%;
+    background-color: #ffd166;
+    transition: width 0.4s ease;
+}
+
+.flash-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+}
+
+.flash.success {
+    background: linear-gradient(to right, #34d399, #10b981);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    min-width: 250px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(50px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.wide-achievements {
+    flex: 1 1 600px;
+    /* Πιάνει περισσότερο χώρο σε σχέση με άλλες κάρτες */
+}

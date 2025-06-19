@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Dashboard | QuizRot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/student_dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+    <script defer src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/daily-spin.js') }}"></script>
+</head>
+
+<body>
+    <div class="flash-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </div>
+
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <a href="{{ url_for('home') }}" class="logo-link">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" class="logo" alt="QuizRot Logo">
+            </a>
+        </div>
+        <ul class="menu">
+            <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li><a href="{{ url_for('myAccount') }}">My Account</a></li>
+            <li><a href="{{ url_for('available_quizzes') }}">Available Quizzes</a></li>
+            <li><a href="{{ url_for('my_quizzes') }}">Completed Quizzes</a></li>
+            <li><a href="{{ url_for('my_achievements') }}">Achievements</a></li>
+            <li><a href="{{ url_for('logout') }}">Logout</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="welcome-section">
+            <h1>Welcome, {{ user }}!</h1>
+            <p>Today is {{ current_date }}</p>
+        </div>
+
+        <div class="cards-container">
+            <div class="card level-card">
+                <h2>📘 Level</h2>
+                <div class="level-info">
+                    <p><strong>Level:</strong> {{ level_data.level }}</p>
+                    <p><strong>XP:</strong> {{ level_data.current_xp }} / {{ level_data.required_xp }} XP</p>
+                    <div class="xp-bar">
+                        <div class="xp-fill"
+                            style="width: {{ (level_data.current_xp / level_data.required_xp) * 100 }}%;"></div>
+                    </div>
+                    <p><strong>Remaining:</strong> {{ level_data.remaining_xp }} XP to reach the next level</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Available Quizzes</h2>
+                {% if quizzes %}
+                <ul class="quiz-list">
+                    {% for quiz in quizzes %}
+                    <li class="quiz-item">
+                        <span>
+                            {{ quiz.title }}
+                            {% if quiz.attempts == 1 %}
+                            <span class="second-atmpt">2nd attempt</span>
+                            {% endif %}
+                        </span>
+                        <a href="{{ url_for('play_quiz', quiz_id=quiz.id) }}" class="play-btn">Start</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p>You have completed all quizzes!</p>
+                {% endif %}
+            </div>
+
+            <div class="card bonuses">
+                <h2>🎯 Active Bonuses</h2>
+                {% if bonuses %}
+                <ul>
+                    <ul class="bonus-list">
+                        {% for bonus in bonuses %}
+                        <li>{{ bonus.bonus }} — until {{ bonus.expires }}</li>
+                        {% endfor %}
+                    </ul>
+                </ul>
+                {% else %}
+                <p>No active bonuses. Spin or earn achievements to get some!</p>
+                {% endif %}
+            </div>
+
+            <div class="card daily-bonus-card">
+                <h2>🎁 Daily Bonus Reward</h2>
+                <p>Flip a card and reveal your daily prize!</p>
+                {% if not has_spun_today %}
+                <button id="openBonusModal" class="bonus-btn">🎁 Reveal your daily reward</button>
+                {% else %}
+                <button class="bonus-btn" disabled>✔️ Bonus claimed</button>
+                <p class="small-msg">Come back tomorrow for more!</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="extras-section">
+            <div class="recent-quizzes">
+                <h2>📚 Recent Quizzes</h2>
+                <ul class="recent-quiz-list">
+                    {% for quiz in recent_quizzes %}
+                    <li>
+                        <span class="quiz-title">{{ quiz[0] }}</span>
+                        <span class="quiz-score">{{ quiz[1] }} pts</span>
+                    </li>
+                    {% else %}
+                    <li>No quizzes taken yet.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <div class="card achievements wide-achievements">
+                <h2>Achievements</h2>
+                {% if achievements %}
+                <div class="badges">
+                    {% for badge in achievements %}
+                    <div class="badge" data-description="{{ badge.description | e }}">{{ badge.name }}</div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p>No achievements yet. Keep playing!</p>
+                {% endif %}
+            </div>
+
+
+            <div class="insights">
+                <h2>📈 Your Insights</h2>
+
+                {% if insights.quizzes_played > 0 %}
+                <div class="insight-item">
+                    <h4>Quizzes Played</h4>
+                    <p class="animated-number" data-target="{{ insights.quizzes_played }}">0</p>
+                </div>
+                <div class="insight-item">
+                    <h4>Correct Answer Rate</h4>
+                    <p class="animated-number" data-target="{{ insights.correct_rate }}">0%</p>
+                </div>
+                {% else %}
+                <p style="text-align: center;">You haven’t taken any quizzes yet. Start one to unlock insights!</p>
+                {% endif %}
+            </div>
+
+        </div>
+        {% if insights.quizzes_played > 0 and chart_data %}
+        <div class="chart-container fade-in">
+            <h2>Success Rate per Subject</h2>
+            <p class="chart-subtitle">Based on your answers across each lesson</p>
+            <canvas id="xpChart"></canvas>
+        </div>
+        {% endif %}
+
+    </div>
+
+    <!-- Modal για το Spin -->
+    <div id="bonusModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>🎁 Daily Bonus - Choose a Card!</h2>
+            <div class="card-container">
+                <div class="flip-card">
+                    <div class="flip-inner">
+                        <div class="flip-front">❓</div>
+                        <div class="flip-back"></div>
+                    </div>
+                </div>
+                <div class="flip-card">
+                    <div class="flip-inner">
+                        <div class="flip-front">❓</div>
+                        <div class="flip-back"></div>
+                    </div>
+                </div>
+                <div class="flip-card">
+                    <div class="flip-inner">
+                        <div class="flip-front">❓</div>
+                        <div class="flip-back"></div>
+                    </div>
+                </div>
+                <div class="flip-card">
+                    <div class="flip-inner">
+                        <div class="flip-front">❓</div>
+                        <div class="flip-back"></div>
+                    </div>
+                </div>
+            </div>
+            <p id="resultMessage"></p>
+        </div>
+    </div>
+
+    <script>
+        setTimeout(() => {
+            document.querySelectorAll(".flash").forEach(el => {
+                el.style.transition = "opacity 0.4s ease";
+                el.style.opacity = 0;
+                setTimeout(() => el.remove(), 400);
+            });
+        }, 5000);
+    </script>
+    <script>
+        const chartData = {{ chart_data | tojson }};
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='js/xp_chart.js') }}"></script>
+
+</body>
+
+</html>

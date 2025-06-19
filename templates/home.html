@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="el">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | QuizRot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <script defer src="{{ url_for('static', filename='js/login.js') }}"></script>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Αριστερή πλευρά -->
+        <div class="left-half">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="QuizRot Logo" class="logo">
+            <p class="tagline">Play. Learn. Repeat.</p>
+        </div>
+
+        <!-- Δεξιά πλευρά -->
+        <div class="right-half">
+            <div class="right-inner">
+
+                <h1 class="page-title">Welcome to <span class="highlight">QuizRot</span>!</h1>
+
+                <!-- Flip-based Login/Register -->
+                <div id="loginModal" class="modal show" data-register="{{ register if register else 'False'}}"
+                    data-error="{{ error if error else '' }}">
+                    <div class="modal-content">
+                        <div class="flip-container">
+                            <div class="flipper">
+                                <!-- Login -->
+                                <div class="front">
+                                    <form id="loginForm" method="POST" action="{{ url_for('login') }}">
+                                        <h2>Sign in</h2>
+                                        <p id="loginError" class="error-msg" style="display: none;"></p>
+
+                                        <label for="login-username">Username:</label>
+                                        <input type="text" id="login-username" name="username" required autofocus>
+
+                                        <label for="login-password">Password:</label>
+                                        <div class="password-wrapper">
+                                            <input type="password" id="login-password" name="password" required>
+                                            <i class="fa-solid fa-eye toggle-password"
+                                                onclick="togglePassword('login-password', this)"></i>
+                                        </div>
+
+                                        <button type="submit">Sign in</button>
+                                        <p>No account? <a href="#" id="showRegister">Register</a></p>
+                                    </form>
+                                </div>
+
+                                <!-- Register -->
+                                <div class="back">
+                                    <form id="registerForm" method="POST" action="{{ url_for('register') }}">
+                                        <h2>Register</h2>
+                                        <p id="registerError" class="error-msg" style="display: none;"></p>
+
+                                        <label for="register-username">Username:</label>
+                                        <input type="text" id="register-username" name="username" required>
+
+                                        <label for="register-email">Email:</label>
+                                        <input type="email" id="register-email" name="email" required>
+
+                                        <label for="register-password">Password:</label>
+                                        <div class="password-wrapper">
+                                            <input type="password" id="register-password" name="password" required>
+                                            <i class="fa-solid fa-eye toggle-password"
+                                                onclick="togglePassword('register-password', this)"></i>
+                                        </div>
+
+                                        <label for="register-role">Role:</label>
+                                        <div class="roleRegister">
+                                            <select id="register-role" name="role" required>
+                                                <option value="">Choose Role</option>
+                                                <option value="student">🎓 Student</option>
+                                                <option value="teacher">👨‍🏫 Teacher</option>
+                                            </select>
+                                        </div>
+
+                                        <div id="classField" style="display: none;">
+                                            <label for="class">Class:</label>
+                                            <select id="class" name="class">
+                                                <option value="">Choose Class</option>
+                                                <option value="A">A</option>
+                                                <option value="B">B</option>
+                                                <option value="C">C</option>
+                                            </select>
+                                        </div>
+
+                                        <button type="submit">Register</button>
+                                        <p>Have one? <a href="#" id="showLogin">Log in</a></p>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- Τέλος δεξιάς -->
+    </div>
+</body>
+
+</html>

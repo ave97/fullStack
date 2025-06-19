@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Quiz Summary | QuizRot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/quiz_summary.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>🎉 Quiz Summary</h2>
+        <p><strong>Score: </strong> {{ summary.score }}</p>
+
+        {% if summary.bonus %}
+        <p><strong>Bonus Applied:</strong> {{ summary.bonus }} </p>
+        <p><strong>Base XP:</strong> {{ summary.base_xp }}</p>
+        <p><strong>Final XP Earned:</strong> {{ summary.xp }}</p>
+        {% else %}
+        <p><strong>XP Earned:</strong> {{ summary.xp }}</p>
+        {% endif %}
+
+        <p><strong>Time Taken: </strong>{{ summary.time_taken // 60 }}:{{ '%02d' % (summary.time_taken % 60) }}</p>
+        <p><strong>Correct Answers: </strong>{{ summary.correct }} / {{ summary.total }}</p>
+        <p><strong>Total Spins: </strong>{{ summary.total_spins }}</p>
+        <hr>
+        <h3>Review</h3>
+
+        {% for a in summary.answers %}
+        <div class="answer-block">
+            <div class="answer-content">
+                <p><strong>Q{{ loop.index }}:</strong> {{ a.question_text }}</p>
+                <p><strong>Answer:</strong>
+                    {% if a.question_type == 'matching' %}
+                    {{ a.user_answer | map(attribute='left') | join(', ') }} →
+                    {{ a.user_answer | map(attribute='right') | join(', ') }}
+                    {% else %}
+                    {{ a.user_answer }}
+                    {% endif %}
+                </p>
+            </div>
+            <div class="answer-status {% if a.is_correct %}correct{% else %}wrong{% endif %}">
+                {% if a.is_correct %}
+                <i class="fa-solid fa-check" style="font-size: 24px;"></i>
+                {% else %}
+                <i class="fa-solid fa-xmark" style="font-size: 24px;"></i>
+                {% endif %}
+            </div>
+            <hr>
+
+        </div>
+        {% endfor %}
+        <div class="back-btn-container">
+            <a href="{{ url_for('dashboard') }}" class="back-btn">Back to Dashboard</a>
+        </div>
+    </div>
+
+</body>
+
+</html>

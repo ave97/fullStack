@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Achievements | QuizRot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/achievements.css') }}">
+    <script defer src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <a href="{{ url_for('home') }}" class="logo-link">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" class="logo" alt="QuizRot Logo">
+            </a>
+        </div>
+        <ul class="menu">
+            <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li><a href="{{ url_for('myAccount') }}">My Account</a></li>
+            <li><a href="{{ url_for('available_quizzes') }}">Available Quizzes</a></li>
+            <li><a href="{{ url_for('my_quizzes') }}">Completed Quizzes</a></li>
+            <li><a href="{{ url_for('my_achievements') }}">Achievements</a></li>
+            <li><a href="{{ url_for('logout') }}">Logout</a></li>
+        </ul>
+    </div>
+    <div class="header">
+        <h1>🏆 My Achievements</h1>
+        <p>Welcome, {{ user }}! Here are your unlocked and locked achievements.</p>
+    </div>
+
+    <div class="achievements-container">
+        {% for achievement in achievements %}
+        <div class="achievement-card {% if not achievement.earned %}locked{% endif %}">
+            <h2>{{ achievement.name }}</h2>
+            <p>{{ achievement.description }}</p>
+            <small>XP: {{ achievement.xp }}</small>
+            {% if achievement.earned %}
+            <p class="date-earned">Earned on: {{ achievement.date_earned }}</p>
+            {% else %}
+            <div class="locked-overlay">🔒 Locked</div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</body>
+
+</html>

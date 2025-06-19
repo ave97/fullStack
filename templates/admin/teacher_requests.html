@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Teacher Requests | QuizRot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="admin-layout">
+        <aside class="admin-sidebar">
+            <h2>⚙️ Admin</h2>
+            <nav>
+                <a href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('admin_users') }}">Users</a>
+                <a href="{{ url_for('admin_teacher_requests') }}">Teacher Requests</a>
+                <a href="{{ url_for('admin_achievements') }}">Achievements</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </nav>
+        </aside>
+
+        <main class="main">
+            <h1>🧑‍🏫 Teacher Requests</h1>
+
+            {% if requests %}
+            <table class="user-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Submitted At</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in requests %}
+                    <tr>
+                        <td>{{ req[0] }}</td>
+                        <td>{{ req[1] }}</td>
+                        <td>{{ req[2] }}</td>
+                        <td>{{ req[3] }}</td>
+                        <td>
+                            <form method="post" action="{{ url_for('handle_teacher_request') }}"
+                                style="display: flex; gap: 10px;">
+                                <input type="hidden" name="request_id" value="{{ req[0] }}">
+
+                                <span class="action-hover approve">
+                                    <button class="icon-btn" type="submit" name="action" value="accept">
+                                        <i class="fa-solid fa-check"></i>
+                                    </button>
+                                    <span class="label">Approve</span>
+                                </span>
+
+                                <span class="action-hover reject">
+                                    <button class="icon-btn" type="submit" name="action" value="reject">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                    <span class="label">Reject</span>
+                                </span>
+                            </form>
+
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>No pending teacher requests.</p>
+            {% endif %}
+        </main>
+    </div>
+</body>
+
+</html>

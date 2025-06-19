@@ -1,0 +1,26 @@
+/* Reset για τους browsers */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    color: #333;
+    line-height: 1.6;
+    padding: 20px;
+}
+
+h1, h2, h3 {
+    color: #003366;
+}
+
+a {
+    color: #118AB2;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: none;
+}

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="el">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="admin-layout">
+        <aside class="admin-sidebar">
+            <h2>⚙️ Admin</h2>
+            <nav>
+                <a href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('admin_users') }}">Users</a>
+                <a href="{{ url_for('admin_teacher_requests') }}">Teacher Requests</a>
+                <a href="{{ url_for('admin_achievements') }}">Achievements</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </nav>
+        </aside>
+
+        <!-- Main content -->
+        <main class="main">
+            <h1>Dashboard</h1>
+
+            <div class="dashboard-list">
+                <div class="dashboard-item">
+                    <i class="fas fa-users"></i>
+                    <div>
+                        <h4>Total Users</h4>
+                        <p>{{ total_users - 1 }}</p>
+                    </div>
+                </div>
+
+                <div class="dashboard-item">
+                    <i class="fas fa-user-graduate"></i>
+                    <div>
+                        <h4>Students</h4>
+                        <p>{{ student_count }}</p>
+                    </div>
+                </div>
+
+                <div class="dashboard-item">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                    <div>
+                        <h4>Teachers</h4>
+                        <p>{{ teacher_count }}</p>
+                    </div>
+                </div>
+
+                <div class="dashboard-item">
+                    <i class="fas fa-calendar-plus"></i>
+                    <div>
+                        <h4>New Registrations (last 7 days)</h4>
+                        <p>{{ recent_registrations }}</p>
+                    </div>
+                </div>
+
+                <div class="dashboard-item">
+                    <i class="fas fa-clock"></i>
+                    <div>
+                        <h4>Pending Teacher Requests</h4>
+                        <p>{{ pending_teacher_requests }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="lessons">
+                <h1>Manage Lessons</h1>
+
+                <form class="lesson-form">
+                    <input type="text" name="lesson_name" placeholder="New Lesson" />
+                    <button type="submit"><i class="fa-solid fa-plus"></i> Add</button>
+                </form>
+
+                
+                {% if lessons %}
+                <table class="lesson-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Lesson</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lesson in lessons %}
+                        <tr data-id="{{ lesson.id }}">
+                            <td>{{ loop.index }}</td>
+                            <td class="lesson-name">{{ lesson.name }}</td>
+                            <td>
+                                <button class="edit-btn"><i class="fa-solid fa-pen"></i></button>
+                                <button class="delete-btn"><i class="fa-solid fa-xmark"></i></button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                {% else %}
+                <p>No lessons found.</p>
+                {% endif %}
+            </div>
+        </main>
+
+    </div>
+    <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+</body>
+
+</html>

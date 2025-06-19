@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_quiz_summary.css') }}" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <title>Quiz Summary | QuizRot</title>
+</head>
+
+<body>
+    <div class="main-content">
+        <h1>Quiz Summary</h1>
+        <p><strong>Quiz Title:</strong> {{ quiz_title or 'N/A' }}</p>
+        <p><strong>Student:</strong> {{ sid or 'N/A' }}</p>
+        <p><strong>Score:</strong> {{ summary.score }}</p>
+        <p><strong>Correct Answers:</strong> {{ summary.correct }}</p>
+        <p>
+            <strong>Time Taken:</strong>
+            {{ summary.time_taken // 60 }} minutes {{ '%02d' % (summary.time_taken % 60) }} seconds
+        </p>
+
+        <h2>Questions Overview</h2>
+        <table class="quiz-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Question</th>
+                    <th>Student Answer</th>
+                    <th>Correct Answer</th>
+                    <th>Result</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for answer in summary.answers %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ answer.question_text }}</td>
+                    <td>
+                        {% if answer.question_type == 'matching' %}
+                        <ul class="matching-list">
+                            {% for item in answer.user_answer %}
+                            <li>{{ item.left }} <i class="fa-solid fa-arrow-right"></i> {{ item.right }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        {{ answer.user_answer }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if answer.question_type == 'matching' %}
+                        <ul class="matching-list">
+                            {% for correct_item in answer.correct_answer %}
+                            <li>{{ correct_item.item_1 }} <i class="fa-solid fa-arrow-right"></i> {{ correct_item.item_2
+                                }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% elif answer.question_type == 'multiple_choice' %}
+                        {{ answer.correct_answer if answer.correct_answer else 'N/A' }}
+                        {% elif answer.question_type == 'true_false' %}
+                        {{ 'True' if answer.correct_answer else 'False' }}
+                        {% else %}
+                        {{ 'N/A' }}
+                        {% endif %}
+                    </td>
+                    <td class="{{ 'correct' if answer.is_correct else 'incorrect' }}">
+                        {% if answer.is_correct %}
+                        <i class="fa-solid fa-check" style="font-size: 24px;"></i>
+                        {% else %}
+                        <i class="fa-solid fa-xmark" style="font-size: 24px;"></i>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <a href="{{ url_for('teacher_student_scores') }}" class="action-btn">Back to Scores</a>
+    </div>
+</body>
+
+</html>

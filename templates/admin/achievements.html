@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Achievements</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_achievements.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="admin-layout">
+        <aside class="admin-sidebar">
+            <h2>⚙️ Admin</h2>
+            <nav>
+                <a href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('admin_users') }}">Users</a>
+                <a href="{{ url_for('admin_teacher_requests') }}">Teacher Requests</a>
+                <a href="{{ url_for('admin_achievements') }}">Achievements</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </nav>
+        </aside>
+
+        <main class="main">
+            <div class="achievements-header">
+                <h1>Manage Achievements</h1>
+            </div>
+
+            <form class="achievement-form" method="post" action="{{ url_for('add_achievement') }}">
+                <input type="text" name="title" placeholder="Title" required>
+                <input type="text" name="description" placeholder="Description" required>
+                <input type="number" name="xp" placeholder="XP" min="1" required>
+
+                <select name="type" required>
+                    <option value="" disabled selected hidden>-- Select Type --</option>
+                    <option value="logins">Logins</option>
+                    <option value="quizzes">Quizzes</option>
+                    <option value="points">Points Earned</option>
+                </select>
+
+                <input type="number" name="target" placeholder="Target amount (e.g. 5 logins)" min="1" required>
+
+                <button type="submit"><i class="fa-solid fa-plus"></i> Add Achievement</button>
+            </form>
+
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            <div class="search-container">
+                <input type="text" id="achievementSearch" placeholder="Search achievements...">
+            </div>
+
+            {% if achievements %}
+            <table class="achievement-table">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Description</th>
+                        <th>Type</th>
+                        <th>Target</th>
+                        <th>XP</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for achievement in achievements %}
+                    <tr>
+                        <td>{{ achievement[1] }}</td>
+                        <td>{{ achievement[2] }}</td>
+                        <td>{{ achievement[3] }}</td>
+                        <td>{{ achievement[4] }}</td>
+                        <td>{{ achievement[5] }}</td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="edit-btn" type="button"
+                                    onclick="showEditForm({{ achievement[0] }}, '{{ achievement[1] }}', '{{ achievement[2] }}', '{{ achievement[3] }}', {{ achievement[4] }}, {{ achievement[5] }})">
+                                    <i class="fas fa-pen"></i> Edit
+                                </button>
+
+                                <form method="post" action="{{ url_for('delete_achievement') }}"
+                                    onsubmit="return confirm('Are you sure?');">
+                                    <input type="hidden" name="achievement_id" value="{{ achievement[0] }}">
+                                    <button class="delete-btn" type="submit">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>No achievements found.</p>
+            {% endif %}
+        </main>
+    </div>
+
+    <div id="editModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 16px;">Edit Achievement</h3>
+            <form method="post" action="{{ url_for('edit_achievement') }}">
+                <input type="hidden" name="id" id="edit-id">
+
+                <label for="edit-title">Title</label>
+                <input type="text" name="title" id="edit-title" required>
+
+                <label for="edit-description">Description</label>
+                <input type="text" name="description" id="edit-description" required>
+
+                <label for="edit-type">Type</label>
+                <select name="type" id="edit-type" required>
+                    <option value="logins">Logins</option>
+                    <option value="quizzes">Quizzes</option>
+                    <option value="points">Points Earned</option>
+                </select>
+
+                <label for="edit-target">Target</label>
+                <input type="number" name="target" id="edit-target" required>
+
+                <label for="edit-xp">XP</label>
+                <input type="number" name="xp" id="edit-xp" required>
+                
+                <div style="display: flex; gap: 10px; margin-top: 16px;">
+                    <button type="submit" style="flex: 1;">Save</button>
+                    <button type="button" onclick="closeEditModal()" style="flex: 1;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showEditForm(id, title, description, type, target, xp) {
+            console.log("Editing Achievement with ID: ", id, " Title: ", title, " Description: ", description, " XP: ", xp, " Type: ", type, " Target: ", target);
+            document.getElementById('edit-id').value = id;
+            document.getElementById('edit-title').value = title;
+            document.getElementById('edit-description').value = description;
+            document.getElementById('edit-xp').value = xp;
+            document.getElementById('edit-type').value = type;
+            document.getElementById('edit-target').value = target;
+
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        document.getElementById("achievementSearch").addEventListener("input", function () {
+            const filter = this.value.toLowerCase();
+            const rows = document.querySelectorAll(".achievement-table tbody tr");
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(filter) ? "" : "none";
+            });
+        });
+
+        setTimeout(() => {
+            document.querySelectorAll(".flash.success").forEach(el => {
+                el.style.transition = "opacity 0.5s ease";
+                el.style.opacity = 0;
+                setTimeout(() => el.remove(), 500);
+            });
+        }, 5000); // εξαφάνιση μετά από 5 δευτ
+    </script>
+
+</body>
+
+</html>

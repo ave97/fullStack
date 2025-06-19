@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="el">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Available Quizzes | QuizRot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/available_quizzes.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+
+<body>
+
+    <div class="layout">
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <a href="{{ url_for('home') }}" class="logo-link">
+                    <img src="{{ url_for('static', filename='images/logo.png') }}" class="logo" alt="QuizRot Logo">
+                </a>
+            </div>
+            <ul class="menu">
+                <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li><a href="{{ url_for('myAccount') }}">My Account</a></li>
+                <li><a href="{{ url_for('available_quizzes') }}" class="active">Available Quizzes</a></li>
+                <li><a href="{{ url_for('my_quizzes') }}">Completed Quizzes</a></li>
+                <li><a href="{{ url_for('my_achievements') }}">Achievements</a></li>
+                <li><a href="{{ url_for('logout') }}">Logout</a></li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main">
+            <h2><i class="fa-solid fa-list-check"></i> Available Quizzes</h2>
+
+            {% if quizzes %}
+            <div class="quiz-grid">
+                {% for quiz in quizzes %}
+                <div
+                    class="quiz-card {% if quiz.can_play %}green{% elif quiz.attempts >= 2 %}red{% else %}yellow{% endif %}">
+                    <h3>{{ quiz.title }}</h3>
+                    <p><strong>Lesson:</strong> {{ quiz.lesson }}</p>
+                    <p><strong>Attempts:</strong> {{ quiz.attempts }} / 2</p>
+
+                    {% if quiz.can_play %}
+                    <a href="{{ url_for('play_quiz', quiz_id=quiz.id) }}" class="btn">Play now</a>
+                    {% else %}
+                    <p style="color: {% if quiz.attempts >= 2 %}#dc3545{% else %}#ffc107{% endif %};">
+                        {{ quiz.reason }}
+                    </p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% else %}
+                <p style="text-align: center; color: #666;">There are not available quizzes right now. Come back later!</p>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+
+</body>
+
+</html>

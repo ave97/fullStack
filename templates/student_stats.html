@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Student Stats | QuizRot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/student_stats.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <a href="{{ url_for('home') }}" class="logo-link">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" class="logo" alt="QuizRot Logo">
+            </a>
+        </div>
+        <ul class="menu">
+            <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li><a href="{{ url_for('myAccount') }}">My Account</a></li>
+            <li><a href="{{ url_for('create_quiz') }}">Create Quiz</a></li>
+            <li><a href="{{ url_for('history') }}">History</a></li>
+            <li><a href="{{ url_for('manage_students')}}" class="active">Students List</a></li>
+            <li><a href="{{ url_for('logout') }}">Log out</a></li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <h2><i class="fa-solid fa-chart-simple"></i> Stats for {{ student[0] }} (Class {{ student[1] }})</h2>
+        <div class="student-info">
+            <form method="POST" class="lesson-form">
+                <label for="lesson">Select Lesson:</label>
+                <div class="form-group">
+                    <select name="lesson" id="lesson" required>
+                        <option value="">Select Lesson</option>
+                        {% for lesson in lessons %}
+                        <option value="{{ lesson.name }}">{{ lesson.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit">Show</button>
+                </div>
+            </form>
+
+        </div>
+
+        {% if not selected_lesson %}
+        <p style="font-style: italic; color: gray;">Please select a lesson to view quiz results.</p>
+        {% endif %}
+        {% if selected_lesson %}
+        {% if results and results|length > 0 %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Quiz</th>
+                    <th>Correct Answers</th>
+                    <th>Total Questions</th>
+                    <th>Accuracy</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for title, score, correct, total, completed, accuracy in results %}
+                <tr>
+                    <td>{{ title }}</td>
+                    <td>{{ correct }}</td>
+                    <td>{{ total }}</td>
+                    <td>{{ accuracy }} %</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="chart-container">
+            <h3>Accuracy Rate per Quiz</h3>
+            <div style="width: 50%; margin: auto; height: {{ results|length * 250 }}px;">
+                <canvas id="chart"></canvas>
+            </div>
+        </div>
+        {% else %}
+        <p style="color: #999; font-style: italic;">No quizzes found for the selected lesson.</p>
+        {% endif %}
+        {% endif %}
+
+
+    </div>
+
+    <script>
+        const labels = {{ results | map(attribute = 0) | list | tojson }};
+        const accuracy = {{ results | map(attribute = 5) | list | tojson }};
+
+        const ctx = document.getElementById('chart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Accuracy Rate',
+                    data: accuracy,
+                    backgroundColor: 'rgba(52, 152, 219, 0.6)',
+                    borderColor: 'rgba(41, 128, 185, 1)',
+                    borderWidth: 1,
+                    barThickness: 40   // 👈 ρυθμίζεις πόσο χοντρές είναι οι μπάρες
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false, // 👈 αυτό επιτρέπει τον έλεγχο ύψους
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Accuracy (%)',
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Quiz',
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                const value = context.parsed.x;
+                                return `${context.dataset.label}: ${value}%`;
+                            }
+                        },
+                        titleFont: {
+                            size: 14,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 13
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+
+</body>
+
+</html>

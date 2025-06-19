@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Quizzes | QuizRot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/history.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script defer src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/history.js') }}"></script>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <a href="{{ url_for('home') }}" class="logo-link">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" class="logo" alt="QuizRot Logo">
+            </a>
+        </div>
+        <ul class="menu">
+            <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li><a href="{{ url_for('myAccount') }}">My Account</a></li>
+            <li><a href="{{ url_for('create_quiz') }}">Create Quiz</a></li>
+            <li><a href="{{ url_for('history') }}" class="active">History</a></li>
+            <li><a href="{{ url_for('manage_students')}}">Students List</a></li>
+            <li><a href="{{ url_for('logout') }}">Log out</a></li>
+        </ul>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+        <div class="content-inner">
+            <h1>My Quizzes</h1>
+
+            <div class="cbx-row">
+                <label class="custom-checkbox">
+                    <input type="checkbox" id="selectAll">
+                    <span class="checkmark"></span>
+                </label>
+                <button type="button" id="deleteSelected">Delete</button>
+                <div class="dropdown-export">
+                    <button class="dropdown-toggle" id="exportDropdownBtn">Export ▼</button>
+                    <div class="dropdown-menu" id="exportDropdownMenu">
+                        <button type="button" class="dropdown-item" data-export-type="quiz">Export Quiz</button>
+                        <button type="button" class="dropdown-item" data-export-type="answers">Export Answers</button>
+                        <button type="button" class="dropdown-item" data-export-type="all">Export All</button>
+                    </div>
+                </div>
+                <input type="text" id="searchQuiz" placeholder="Search Quiz...">
+                <select id="sortQuiz">
+                    <option value="newest" selected>Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="title">Alphabetical</option>
+                </select>
+            </div>
+
+            <div class="quiz-container">
+                {% if quizzes %}
+                {% for quiz in quizzes %}
+                <div class="quiz-card" data-quiz-id="{{ quiz['id'] }}" data-created-at="{{ quiz['created_at'] }}">
+                    <div class="quiz-card-header">
+                        <h3>{{ quiz['title'] }}</h3>
+                        <label class="custom-checkbox">
+                            <input type="checkbox" class="quiz-card-checkbox">
+                            <span class="checkmark"></span>
+                        </label>
+                    </div>
+                    <p class="created-at" data-created-at="{{ quiz['created_at'] }}"></p>
+                    <p>Number of Questions: {{ quiz['numOfQuestions'] }}</p>
+                    <p>Lesson: {{ quiz['lesson'] }}</p>
+                    <p>Class: {{ quiz['target_class'] }}</p>
+                    <a href="{{ url_for('teacher_student_scores', quiz_id=quiz['id']) }}" class="view-btn">
+                        <i class="fa-solid fa-square-poll-vertical"></i> View Results
+                    </a>
+                    <div class="quiz-card-edit">
+                        <button class="quick-edit-btn" data-quiz-id="{{ quiz['id'] }}"
+                            data-quiz-title="{{ quiz['title'] }}" data-quiz-lesson="{{ quiz['lesson'] }}"
+                            data-quiz-class="{{ quiz['target_class'] }}">
+                            Quick Edit
+                        </button>
+                        <button class="edit-btn" data-quiz-id="{{ quiz['id'] }}">Edit</button>
+                        <button class="delete-btn" type="button">Delete</button>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <!-- Μήνυμα για όταν δεν υπάρχουν καθόλου quizzes -->
+                <div class="quiz-card" style="text-align: center;">
+                    <p>There are no quizzes yet!</p>
+                </div>
+                {% endif %}
+
+                <!-- Μήνυμα για αναζήτηση χωρίς αποτελέσματα -->
+                <div id="noResultsMessage"
+                    style="display: none; text-align: center; width: 100%; font-weight: bold; color: #D62828;">
+                    No results found.
+                </div>
+            </div>
+
+            <!-- Το Modal για την επεξεργασία του Quiz -->
+            <div id="editQuizModal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h2>Edit Quiz</h2>
+                    <form id="editQuizForm">
+                        <label for="quizTitle">Quiz Title:</label>
+                        <input type="text" id="quizTitle" name="quizTitle" required>
+
+                        <label for="quizLesson">Quiz Lesson:</label>
+                        <select id="quizLesson" name="quizLesson" required>
+                            <option value="">Select Lesson</option>
+                            {% for lesson in lessons %}
+                            <option value="{{ lesson.name }}">{{ lesson.name }}</option>
+                            {% endfor %}
+                        </select>
+
+                        <label for="quizClass">Class:</label>
+                        <select id="quizClass" name="quizClass" required>
+                            <option value="">Select Class</option>
+                            <option value="A">A</option>
+                            <option value="B">B</option>
+                            <option value="C">C</option>
+                        </select>
+
+                        <div id="questionsContainer"></div>
+
+                        <button type="submit" id="modalSaveBtn">Save Changes</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="save-notify-modal" id="saveModal">
+                <div class="save-modal-content">
+                    <p>Changes saved!</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+
+</html>

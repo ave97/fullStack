@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Account | QuizRot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/account.css') }}">
+    <script defer src="{{ url_for('static', filename='js/account.js')}}"></script>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <a href="{{ url_for('home') }}" class="logo-link">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" class="logo" alt="QuizRot Logo">
+            </a>
+        </div>
+        <ul class="menu">
+            <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li><a href="{{ url_for('myAccount') }}"
+                    class="{% if request.endpoint == 'myAccount' %}active{% endif %}">My Account</a></li>
+            <li><a href="{{ url_for('create_quiz') }}">Create Quiz</a></li>
+            <li><a href="{{ url_for('history') }}">History</a></li>
+            <li><a href="{{ url_for('manage_students')}}">Students List</a></li>
+            <li><a href="{{ url_for('logout') }}">Log out</a></li>
+        </ul>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-messages">
+        {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div class="main-content">
+        <div class="account-container">
+            <div class="profile-header">
+                <img src="{{ url_for('static', filename='images/avatars/default_avatar.png') }}" class="avatar">
+                <div class="user-info">
+                    <h4>Username: {{ user.username }}</h4>
+                    <h4>User ID: {{ user.id }}</h4>
+                    <p>Email: {{ user.email }}</p>
+                    <small>Role: {{ user.role }}</small>
+                </div>
+            </div>
+
+            <div id="info" class="tab-content active">
+                <div class="info-group">
+                    <label>Username:</label>
+                    <p>{{ user.username }}</p>
+                </div>
+                <div class="info-group">
+                    <label>Email:</label>
+                    <p>{{ user.email }}</p>
+                </div>
+                <div class="info-group">
+                    <button class="edit-btn" onclick="openEditModal()">Edit Info</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-panel">
+            <div class="info-box">
+                <h3>Total Quizzes Created</h3>
+                <p>{{ user.quiz_count }}</p>
+            </div>
+
+            <div class="quiz-list-section">
+                <h3>Your Quizzes</h3>
+                {% if quizzes %}
+                <ul class="quiz-list">
+                    {% for quiz in quizzes %}
+                    <li>
+                        <strong>{{ quiz.title }}</strong>
+                        <span>Created: {{ quiz.created_at }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p>You haven't created any quizzes yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div id="editModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeEditModal()">&times;</span>
+                <h2>Edit Profile Information</h2>
+                <form action="{{ url_for('update_account') }}" method="POST">
+                    <label for="name">Username:</label>
+                    <input type="text" id="name" name="name" value="{{ user.username }}" required>
+
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" value="{{ user.email }}" required>
+
+                    <label for="password">New Password:</label>
+                    <input type="password" id="password" name="password" placeholder="Leave blank if not changing">
+
+                    <button type="submit" class="save-btn">Save Changes</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Εξαφανίζει flash μηνύματα
+        setTimeout(() => {
+            document.querySelectorAll('.flash').forEach(el => {
+                el.style.opacity = '0';
+                el.style.transition = 'opacity 0.6s ease';
+                setTimeout(() => el.remove(), 600);
+            });
+        }, 3000);
+    </script>
+</body>
+
+</html>

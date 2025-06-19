@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Teacher Dashboard | QuizRot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <a href="{{ url_for('home') }}" class="logo-link">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" class="logo" alt="QuizRot Logo">
+            </a>
+        </div>
+        <ul class="menu">
+            <li><a href="{{ url_for('dashboard') }}" class="active">Dashboard</a></li>
+            <li><a href="{{ url_for('myAccount') }}">My Account</a></li>
+            <li><a href="{{ url_for('create_quiz') }}">Create Quiz</a></li>
+            <li><a href="{{ url_for('history') }}">History</a></li>
+            <li><a href="{{ url_for('manage_students')}}">Students List</a></li>
+            <li><a href="{{ url_for('logout') }}">Log out</a></li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="welcome-section">
+            <h1>Welcome, {{ user }}!</h1>
+            <p>Today is {{ current_date }}</p>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <a href="{{ url_for('create_quiz') }}" class="action-btn">
+                <i class="fas fa-pen"></i> Create Quiz
+            </a>
+        </div>
+
+        <div class="cards-container three-cols">
+
+            <!-- Class Metrics -->
+            <div class="card">
+                <h2><i class="fas fa-book-open"></i> Class Insights</h2>
+                <div class="insights-grid">
+                    <div class="insight-item">
+                        <h4><i class="fas fa-user-graduate"></i> Students</h4>
+                        <p>{{ insights.total_students }}</p>
+                    </div>
+                    <div class="insight-item">
+                        <h4><i class="fas fa-file-alt"></i> Quizzes</h4>
+                        <p>{{ insights.total_quizzes }}</p>
+                    </div>
+                    <div class="insight-item">
+                        <h4><i class="fas fa-chart-line"></i> Avg. Accuracy Rate</h4>
+                        <p>{{ insights.avg_score }}%</p>
+                    </div>
+                    <div class="insight-item">
+                        <h4><i class="fas fa-check-circle"></i> Completion Rate</h4>
+                        <p>{{ insights.completion_rate }}%</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Quizzes -->
+            <div class="card">
+                <h2><i class="fas fa-trophy"></i> Top Completed Quizzes</h2>
+
+                {% set nonzero_quizzes = insights.top_quizzes | selectattr("count", ">", 0) | list %}
+
+                {% if nonzero_quizzes %}
+                <ul class="top-quizzes-list item-list">
+                    {% for quiz in nonzero_quizzes %}
+                    <li>
+                        <span class="quiz-info">
+                            <i class="fas fa-star icon"></i>
+                            <a href="{{ url_for('teacher_student_scores', quiz_id=quiz['id']) }}" class="quiz-link">{{
+                                quiz.title }}</a>
+                        </span>
+                        <span class="quiz-count">{{ quiz.count }} completions</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="no-data-message">No quizzes have been completed yet.</p>
+                {% endif %}
+            </div>
+
+
+            <!-- Recent Activity -->
+            <div class="card">
+                <h2><i class="fas fa-bell"></i> Recent Activity</h2>
+                {% if activity_feed %}
+                <ul class="activity-list item-list">
+                    {% for log in activity_feed %}
+                    <li>
+                        {{ log.message }}
+                        <!-- Student {{ log.sid }} completed "{{ log.quiz_title }}" ({{ log.score }} points) -->
+                        <a href="{{ url_for('quiz_summary_detail', quiz_id=log.quiz_id, sid=log.sid) }}"
+                            class="view-btn">View</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="no-data-message">No recent activity yet.</p>
+                {% endif %}
+            </div>
+
+
+        </div>
+
+
+        <!-- Quiz Table -->
+        <div class="latest-quiz-container">
+            {% if quizzes %}
+            <h3>Your Latest Quizzes</h3>
+            <table class="quiz-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Quiz Title</th>
+                        <th>Lesson</th>
+                        <th>Class</th>
+                        <th>Date Created</th>
+                        <th>Accuracy Rate</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for quiz in quizzes %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ quiz.title }}</td>
+                        <td>{{ quiz.lesson }}</td>
+                        <td>{{ quiz.class }}</td>
+                        <td>{{ quiz.created_at }}</td>
+                        {% if quiz.accuracy_rate %}
+                        <td>
+                            {{ quiz.accuracy_rate }}%
+                        </td>
+                        {% else %}
+                        <td>—</td>
+                        {% endif %}
+                        <td class="actions">
+                            <a href="{{ url_for('view_quiz', quiz_id=quiz.id) }}" class="table-action-btn">Edit Quiz</a>
+                            <a href="{{ url_for('teacher_student_scores', quiz_id=quiz['id']) }}"
+                                class="table-action-btn">View
+                                Results</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>No quizzes yet. <a href="{{ url_for('create_quiz') }}">Create one now</a>.</p>
+            {% endif %}
+        </div>
+
+        <div class="dashboard-row">
+            <!-- Leaderboard -->
+            <div class="card leaderboard">
+                <h2><i class="fas fa-medal"></i> Top Students</h2>
+
+                {% set valid_students = leaderboard | selectattr("points", ">", 0) | list %}
+
+                {% if valid_students %}
+                <table class="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Student</th>
+                            <th>Class</th>
+                            <th>Avg. Accuracy Rate</th>
+                            {% for lesson in all_lessons %}
+                            <th>{{ lesson }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in leaderboard %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ student.sid }}</td>
+                            <td>{{ student.class }}</td>
+                            <td>
+                                {% if student.avg_accuracy is not none %}
+                                {% set val = student.avg_accuracy | float %}
+                                {{ '{:.0f}'.format(val) if val == val|int else '{:.2f}'.format(val) }}%
+                                {% else %}
+                                —
+                                {% endif %}
+                            </td>
+                            {% for lesson in all_lessons %}
+                            <td>
+                                {% if lesson in student.lesson_accuracies %}
+                                {% set val = student.lesson_accuracies[lesson] | float %}
+                                {{ '{:.0f}'.format(val) if val == val|int else '{:.2f}'.format(val) }}%
+                                {% else %}
+                                —
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="no-data-message">No students have completed any quizzes yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</body>
+
+</html>

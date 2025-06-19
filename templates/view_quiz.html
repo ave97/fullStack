@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ quiz['title'] }} - Quiz | QuizRot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/create_quiz.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/view_quiz.css') }}">
+    <script defer src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/view_quiz.js') }}"></script>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <a href="{{ url_for('home') }}" class="logo-link">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" class="logo" alt="QuizRot Logo"">
+            </a>
+        </div>
+        <ul class=" menu">
+                <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li><a href="{{ url_for('myAccount') }}">My Account</a></li>
+                <li><a href="{{ url_for('create_quiz') }}">Create Quiz</a></li>
+                <li><a href="{{ url_for('history') }}" class="active">History</a></li>
+                <li><a href="{{ url_for('manage_students')}}"
+                        class="{% if request.endpoint == 'manage_students' %}active{% endif %}">Students List</a></li>
+                <li><a href="{{ url_for('logout') }}">Log out</a></li>
+                </ul>
+        </div>
+
+        <div class="content">
+            <div class="page-title">
+                <h1>Edit Quiz</h1>
+            </div>
+
+            <div class="quiz_creation">
+                <form id="quizForm" method="POST" action="{{ url_for('save_quiz', quiz_id=quiz['id']) }}">
+                    <div class="basics-container">
+                        <div class="flex-box left">
+                            <label for="quizTitle">Quiz Title:</label>
+                            <input type="text" id="quizTitle" name="quizTitle" value="{{ quiz['title'] }}" required>
+                        </div>
+
+                        <div class="flex-box right">
+                            <div class="sub-field">
+                                <label for="quizLesson">Lesson:</label>
+                                <select id="quizLesson" name="quizLesson" required>
+                                    <option value="">Select Lesson</option>
+                                    {% for lesson in lessons %}
+                                    <option value="{{ lesson.name }}" {% if lesson.name==quiz.lesson %}selected{% endif
+                                        %}>
+                                        {{ lesson.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="sub-field">
+                                <label for="quizClass">Class:</label>
+                                <select id="quizClass" name="quizClass" required>
+                                    <option value="">Select Class</option>
+                                    <option value="A" {% if quiz['class']=='A' %}selected{% endif %}>A</option>
+                                    <option value="B" {% if quiz['class']=='B' %}selected{% endif %}>B</option>
+                                    <option value="C" {% if quiz['class']=='C' %}selected{% endif %}>C</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <div class="questionsContainer">
+                        {% for question in quiz['questions'] %}
+                        <div class="question">
+                            <div class="question-type">
+                                <h3>Question {{ loop.index }}</h3>
+                                <label>Question Type: </label>
+                                <select name="questionType_{{ loop.index }}" required>
+                                    <option value="multiple_choice" {% if question['question_type']=='multiple_choice'
+                                        %}selected{% endif %}>Multiple Choice</option>
+                                    <option value="true_false" {% if question['question_type']=='true_false'
+                                        %}selected{% endif %}>True/False</option>
+                                    <option value="matching" {% if question['question_type']=='matching' %}selected{%
+                                        endif %}>Matching</option>
+                                </select>
+                            </div>
+
+                            <div class="question-content">
+                                <label>Question Text: </label>
+                                <input type="text" name="question_{{ loop.index }}"
+                                    value="{{ question['question_text'] }}" required>
+                                <input type="hidden" name="question_id_{{ loop.index }}" value="{{ question['id'] }}">
+                            </div>
+
+                            <div class="options-container" {% if question['question_type'] !='multiple_choice'
+                                %}style="display: none;" {% endif %}>
+                                <label>Options: </label>
+                                {% set q_index = loop.index %}
+                                {% for i in range(1, 5) %}
+                                <input type="text" name="option_{{ q_index }}_{{ i }}"
+                                    value="{{ question['options'][i-1] }}" required>
+                                {% endfor %}
+                                <label>Correct Answer:</label>
+                                <select name="correct_{{ loop.index }}">
+                                    <option value="1" {% if question['correct_answer']==1 %}selected{% endif %}>Option 1
+                                    </option>
+                                    <option value="2" {% if question['correct_answer']==2 %}selected{% endif %}>Option 2
+                                    </option>
+                                    <option value="3" {% if question['correct_answer']==3 %}selected{% endif %}>Option 3
+                                    </option>
+                                    <option value="4" {% if question['correct_answer']==4 %}selected{% endif %}>Option 4
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="true-false-container" {% if question['question_type'] !='true_false'
+                                %}style="display: none;" {% endif %}>
+                                <label>Answer:</label>
+                                <select name="trueFalseAnswer_{{ loop.index }}">
+                                    <option value="true" {% if question['correct_answer']=='true' %}selected{% endif %}>
+                                        True
+                                    </option>
+                                    <option value="false" {% if question['correct_answer']=='false' %}selected{% endif
+                                        %}>
+                                        False</option>
+                                </select>
+                            </div>
+
+                            <div class="matching-container" {% if question['question_type'] !='matching'
+                                %}style="display: none;" {% endif %}>
+                                <label>Match items:</label>
+                                <div class="matching-pairs">
+                                    {% set q_index = loop.index %}
+                                    {% for pair in question['matching_items'] %}
+                                    <div class="matching-pair">
+                                        <input type="text" name="matching_{{ q_index }}_{{ loop.index0 * 2 + 1 }}"
+                                            value="{{ pair.item_1 }}" required>
+                                        <input type="text" name="matching_{{ q_index }}_{{ loop.index0 * 2 + 2 }}"
+                                            value="{{ pair.item_2 }}" required>
+                                        <button type="button" class="removePairBtn">❌</button>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                <button type="button" class="addPairBtn">➕ Add Pair</button>
+                            </div>
+
+                            <button type="button" class="removeQuestion">Remove Question</button>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <button type="button" id="addQuestion">➕ Add Question</button>
+                    <button type="button" id="updateBtn">Update Quiz</button>
+                </form>
+            </div>
+        </div>
+</body>
+
+</html>

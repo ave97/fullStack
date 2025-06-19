@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wheel of Fortune | QuizRot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/wheel-of-fortune.css') }}">
+    <script defer src="{{ url_for('static', filename='js/wheel-of-fortune.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/quiz-logic.js') }}"></script>
+</head>
+
+<body>
+
+    <a href="/" id="homeButton">🏠 Home</a>
+
+    <div class="game-container" id="game-container" data-quiz='{{ quiz | tojson }}'>
+        <div class="info-bar">
+            <div id="timer" class="timer">Time: 0:00</div>
+            <div id="score" class="score">Score: 0</div>
+        </div>
+        <div id="wheel-container" class="wheel-container">
+            <div class="wheel-and-button">
+                <div class="wheel-wrapper">
+                    <svg id="wheel" viewBox="0 0 630 630" width="600" height="600">
+                        <g id="wheel-group"></g>
+                    </svg>
+                    <div class="pointer"></div>
+                </div>
+                <button id="spinWheelBtn">Spin</button>
+            </div>
+        </div>
+
+        <div id="questionBox" class="question-box">Spin the wheel</div>
+        <audio id="ttsAudio" autoplay hidden></audio>
+    </div>
+</body>
+
+</html>

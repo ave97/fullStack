@@ -1,0 +1,475 @@
+/* ==================== */
+/* BASE STYLES          */
+/* ==================== */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+body {
+    background-color: #f4f6f8;
+    display: flex;
+}
+
+/* ==================== */
+/* MAIN CONTENT         */
+/* ==================== */
+.content {
+    margin-left: 270px;
+    /* Χώρος για το sidebar */
+    padding: 40px;
+    width: calc(100% - 270px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.content-inner {
+    width: 100%;
+    max-width: 1400px;
+}
+
+.content h1 {
+    font-size: 28px;
+    color: #1D3557;
+    font-weight: bold;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* ==================== */
+/* QUIZ CONTAINER       */
+/* ==================== */
+.quiz-container {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.quiz-card {
+    background: white;
+    width: 350px;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 4px 4px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-align: left;
+}
+
+.quiz-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 4px 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+.quiz-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.quiz-card h3 {
+    font-size: 20px;
+    color: #1D3557;
+    margin-bottom: 10px;
+}
+
+.quiz-card p {
+    font-size: 14px;
+    color: #444;
+    margin-bottom: 10px;
+}
+
+.view-btn {
+    display: block;
+    text-align: center;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-weight: bold;
+    background-color: #118AB2;
+    color: white;
+    text-decoration: none;
+    transition: background 0.3s ease-in-out;
+}
+
+.view-btn:hover {
+    background-color: #0d6d9b;
+}
+
+.quiz-card-edit {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    margin-top: 15px;
+    gap: 10px;
+}
+
+.quiz-card-edit button {
+    flex: 1;
+    height: 40px;
+    padding: 10px;
+    font-size: 14px;
+    font-weight: bold;
+    text-align: center;
+    border: none;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background 0.3s ease-in-out;
+}
+
+.quiz-card-edit .quick-edit-btn {
+    background-color: #06D6A0;
+    color: white;
+}
+
+.quiz-card-edit .quick-edit-btn:hover {
+    background-color: #04B487;
+}
+
+.quiz-card-edit .edit-btn {
+    background-color: #FFD166;
+    color: black;
+}
+
+.quiz-card-edit .edit-btn:hover {
+    background-color: #EFB800;
+}
+
+.quiz-card-edit .delete-btn {
+    background-color: #D62828;
+    color: white;
+}
+
+.quiz-card-edit .delete-btn:hover {
+    background-color: #A91D1D;
+}
+
+/* ==================== */
+/* CHECKBOXES           */
+/* ==================== */
+.custom-checkbox {
+    position: relative;
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+}
+
+.custom-checkbox input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.checkmark {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 22px;
+    height: 22px;
+    background-color: #ddd;
+    border-radius: 5px;
+    transition: all 0.3s ease-in-out;
+    border: 2px solid transparent;
+}
+
+.custom-checkbox:hover .checkmark {
+    background-color: #ccc;
+}
+
+.custom-checkbox input:checked~.checkmark {
+    background-color: #06D6A0;
+    border: 2px solid #04B487;
+}
+
+.custom-checkbox input:checked~.checkmark::after {
+    content: "✔";
+    font-size: 16px;
+    color: white;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-weight: bold;
+}
+
+/* ==================== */
+/* CBX ROW & BUTTONS    */
+/* ==================== */
+.cbx-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    justify-content: flex-start;
+    background: #F8F9FA;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+.cbx-row>* {
+    flex: 0 0 auto;
+}
+
+/* Checkbox */
+.cbx-row .custom-checkbox {
+    flex: 0 0 auto;
+}
+
+/* Buttons */
+.cbx-row button {
+    flex: 0 0 120px;
+    padding: 10px;
+    font-size: 14px;
+    font-weight: bold;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    transition: background 0.3s ease-in-out;
+    text-align: center;
+    color: white;
+}
+
+#deleteSelected {
+    background-color: #D62828;
+}
+
+#deleteSelected:hover {
+    background-color: #A91D1D;
+}
+
+#exportCSV {
+    background-color: #118AB2;
+}
+
+#exportCSV:hover {
+    background-color: #0D6D9B;
+}
+
+.dropdown-export {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-toggle {
+    padding: 6px 12px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    background-color: white;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.dropdown-menu .dropdown-item {
+    padding: 10px 15px;
+    border: none;
+    width: 100%;
+    text-align: left;
+    background-color: white;
+    color: black;
+    cursor: pointer;
+}
+
+.dropdown-menu .dropdown-item:hover {
+    background-color: #f1f1f1;
+}
+
+.dropdown-export.show .dropdown-menu {
+    display: block;
+}
+
+/* Search Input */
+#searchQuiz {
+    flex: 2 1 300px;
+    min-width: 200px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.3s ease-in-out;
+}
+
+#searchQuiz:focus {
+    border-color: #06D6A0;
+    box-shadow: 0px 0px 8px rgba(6, 214, 160, 0.5);
+}
+
+/* Sort Select */
+#sortQuiz {
+    flex: 1 1 160px;
+    min-width: 140px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+    background: white;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.3s ease-in-out;
+}
+
+#sortQuiz:hover {
+    border-color: #FFD166;
+}
+
+/* Responsive Layout */
+@media (max-width: 768px) {
+    .cbx-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .cbx-row>* {
+        width: 100% !important;
+        flex: unset;
+    }
+}
+
+
+/* =============== */
+/* Modal Settings */
+/* =============== */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+}
+
+.modal.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    width: 400px;
+    text-align: center;
+    position: relative;
+    box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.close {
+    font-size: 24px;
+    color: #333;
+    cursor: pointer;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+}
+
+.close:hover {
+    color: #e74c3c;
+}
+
+label {
+    font-weight: bold;
+    margin-bottom: 8px;
+    display: block;
+    font-size: 14px;
+}
+
+input,
+textarea,
+select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+input:focus,
+textarea:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+#modalSaveBtn {
+    background-color: #3498db;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 100%;
+    font-size: 16px;
+}
+
+#modalSaveBtn:hover {
+    background-color: #2980b9;
+}
+
+.save-notify-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    right: 0;
+    background-color: #2ecc71;
+    color: white;
+    padding: 15px 30px;
+    border-radius: 8px;
+    font-size: 16px;
+    box-shadow: 0 4px 8px rgb(0, 0, 0, 0.2);
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.save-notify-modal.show {
+    display: block;
+    opacity: 1;
+}
+
+/* ==================== */
+/* RESPONSIVE           */
+/* ==================== */
+@media (max-width: 900px) {
+    .quiz-container {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 600px) {
+    .quiz-container {
+        flex-direction: column;
+        align-items: center;
+    }
+}

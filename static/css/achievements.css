@@ -1,0 +1,111 @@
+/* ================================= */
+/*          BASE STYLES             */
+/* ================================= */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+body {
+    background-color: #f4f6f8;
+    padding: 40px;
+}
+
+/* ================================= */
+/*          HEADER SECTION           */
+/* ================================= */
+.header {
+    text-align: center;
+    margin-bottom: 40px;
+    margin-left: 270px; /* Γιατί υπάρχει sidebar */
+}
+
+.header h1 {
+    font-size: 36px;
+    color: #1c4857;
+    margin-bottom: 10px;
+}
+
+.header p {
+    color: #555;
+    margin-bottom: 20px;
+}
+
+/* ================================= */
+/*          BUTTONS                  */
+/* ================================= */
+.back-btn {
+    display: inline-block;
+    margin-top: 10px;
+    background-color: #007bff;
+    color: white;
+    padding: 8px 14px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 16px;
+}
+
+.back-btn:hover {
+    background-color: #0056b3;
+}
+
+/* ================================= */
+/*          ACHIEVEMENTS SECTION     */
+/* ================================= */
+.achievements-container {
+    margin-left: 270px; /* Γιατί υπάρχει sidebar */
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.achievement-card {
+    background-color: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    position: relative;
+    text-align: center;
+    transition: transform 0.3s ease;
+}
+
+.achievement-card:hover {
+    transform: scale(1.03);
+}
+
+.achievement-card h2 {
+    font-size: 20px;
+    margin-bottom: 10px;
+    color: #1c4857;
+}
+
+.achievement-card p {
+    font-size: 16px;
+    color: #555;
+}
+
+/* Locked Achievements */
+.locked {
+    opacity: 0.5;
+    filter: grayscale(100%);
+    position: relative;
+}
+
+.locked-overlay {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #ff4c4c;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-size: 12px;
+}
+
+.date-earned {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #4caf50;
+}

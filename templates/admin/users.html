@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="el">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Users | QuizRot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+
+<body>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+    <div class="toast {{ category }}">{{ message }}</div>
+    {% endfor %}
+    {% endwith %}
+
+    <div class="admin-layout">
+        <aside class="admin-sidebar">
+            <h2>⚙️ Admin</h2>
+            <nav>
+                <a href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('admin_users') }}">Users</a>
+                <a href="{{ url_for('admin_teacher_requests') }}">Teacher Requests</a>
+                <a href="{{ url_for('admin_achievements') }}">Achievements</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </nav>
+        </aside>
+
+        <main class="main">
+            <div class="user-header">
+                <h1>👥 Manage Users</h1>
+                <div class="user-search">
+                    <input type="text" id="searchInput" placeholder="Searching users..." onkeyup="filterUsers()">
+                </div>
+            </div>
+
+            <table class="user-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Regristration Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user[0] }}</td>
+                        <td>{{ user[1] }}</td>
+                        <td>{{ user[2] }}</td>
+                        <td>{{ user[3] }}</td>
+                        <td>{{ user[4] }}</td>
+                        <td>
+                            <div class="action-buttons">
+                                <form method="post" action="{{ url_for('delete_user') }}" title="Delete user">
+                                    <input type="hidden" name="user_id" value="{{ user[0] }}">
+                                    <button class="icon-btn" type="submit">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+
+                                <button class="icon-btn"
+                                    onclick="openEditModal({{ user[0] }}, '{{ user[1]|e }}', '{{ user[2]|e }}', '{{ user[3]|e }}')"
+                                    title="Edit user">
+                                    <i class="fas fa-pen"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    <tr id="noResultsRow" style="display: none;">
+                        <td colspan="6" style="text-align: center; font-style: italic;">No users found.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </main>
+    </div>
+
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeEditModal()">&times;</span>
+            <h2>Edit User</h2>
+            <form method="post" action="{{ url_for('admin_edit_user_modal') }}">
+                <input type="hidden" name="user_id" id="edit-user-id">
+
+                <label>Username</label>
+                <input type="text" name="username" id="edit-username" required>
+
+                <label>Email</label>
+                <input type="email" name="email" id="edit-email" required>
+
+                <label>Role</label>
+                <select name="role" id="edit-role">
+                    <option value="student">Student</option>
+                    <option value="teacher">Teacher</option>
+                </select>
+
+                <button type="submit">
+                    <i class="fas fa-floppy-disk"></i> Save Changes
+                </button>
+            </form>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+</body>
+
+</html>

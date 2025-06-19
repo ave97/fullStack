@@ -1,0 +1,52 @@
+/* ================================= */
+/*          SIDEBAR                 */
+/* ================================= */
+.sidebar {
+    width: 250px;
+    height: 100vh;
+    background-color: #1c4857;
+    padding: 20px;
+    color: white;
+    position: fixed;
+    left: 0;
+    top: 0;
+}
+
+.sidebar-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.logo {
+    width: 200px;
+}
+
+.menu {
+    list-style: none;
+    padding: 0;
+}
+
+.menu li {
+    margin: 20px 0;
+}
+
+.menu li a {
+    text-decoration: none;
+    color: white;
+    font-size: 18px;
+    display: block;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: background 0.3s, color 0.3s;
+}
+
+.menu li a:hover {
+    background-color: #ffd166;
+    color: #1c4857;
+}
+
+/* Active link styling */
+.menu li a.active {
+    background-color: #ffd166;
+    color: #1c4857;
+}

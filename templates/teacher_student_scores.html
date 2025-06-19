@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Student Scores | QuizRot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_stud_scores.css') }}" />
+</head>
+
+<body>
+
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <a href="{{ url_for('home') }}" class="logo-link">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="QuizRot Logo" class="logo" />
+            </a>
+        </div>
+        <ul class="menu">
+            <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li><a href="{{ url_for('myAccount') }}">My Account</a></li>
+            <li><a href="{{ url_for('create_quiz') }}">Create Quiz</a></li>
+            <li><a href="{{ url_for('history') }}" class="active">History</a></li>
+            <li><a href="{{ url_for('manage_students')}}">Students List</a></li>
+            <li><a href="{{ url_for('logout') }}">Log out</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="header-search-container">
+            <h2>Student Quiz Scores</h2>
+            <input type="text" id="searchInput" placeholder="Search by Student ID or Quiz Title...">
+        </div>
+
+        {% if quiz_title %}
+        <div class="filtered-message">
+            <p><strong>Showing results for quiz:</strong> {{ quiz_title }}</p>
+            <a href="{{ url_for('teacher_student_scores') }}" class="btn-clear-filter">Show All Results</a>
+        </div>
+        {% endif %}
+
+
+        {% if results %}
+        <table id="resultsTable" class="quiz-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Student ID</th>
+                    <th>Quiz Title</th>
+                    <th>Accuracy Rate</th>
+                    <th>Date Completed</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for result in results %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ result.sid }}</td>
+                    <td>{{ result.quiz_title }}</td>
+                    <td>{{ "%.2f"|format(result.accuracy_rate) }} %</td>
+                    <td>{{ result.completed_at }}</td>
+                    <td><a href="{{ url_for('quiz_summary_detail', quiz_id=result.quiz_id, sid=result.sid) }}"
+                            class="view-btn">View</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No quiz results available yet.</p>
+        {% endif %}
+    </div>
+    <script>
+        const searchInput = document.getElementById('searchInput');
+        const table = document.getElementById('resultsTable');
+        const rows = table ? table.tBodies[0].rows : [];
+
+        searchInput.addEventListener('keyup', function () {
+            const filter = this.value.toLowerCase();
+
+            for (let i = 0; i < rows.length; i++) {
+                const sid = rows[i].cells[1].textContent.toLowerCase();
+                const quizTitle = rows[i].cells[2].textContent.toLowerCase();
+
+                if (sid.includes(filter) || quizTitle.includes(filter)) {
+                    rows[i].style.display = '';
+                } else {
+                    rows[i].style.display = 'none';
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Teacher Progress | QuizRot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_progress.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+
+<body>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <a href="{{ url_for('home') }}" class="logo-link">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" class="logo" alt="QuizRot Logo">
+            </a>
+        </div>
+        <ul class="menu">
+            <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li><a href="{{ url_for('myAccount') }}">My Account</a></li>
+            <li><a href="{{ url_for('create_quiz') }}">Create Quiz</a></li>
+            <li><a href="{{ url_for('history') }}">History</a></li>
+            <li><a href="{{ url_for('manage_students')}}">Students List</a></li>
+            <li><a href="{{ url_for('teacher_progress') }}" class="active">Progress</a></li>
+            <li><a href="{{ url_for('logout') }}">Log out</a></li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <h1><i class="fa-solid fa-chart-simple"></i> Quiz Progress</h1>
+
+        <!-- Μέσος Όρος ανά Quiz -->
+        <div class="chart-container">
+            <h2>Average Score per Lesson</h2>
+            <canvas class="charts" id="avgScoreChart"></canvas>
+        </div>
+
+        <!-- Επιλογή Quiz -->
+        <form method="POST">
+            <h3>Choose a Quiz to View Detailed Results</h3>
+            <label for="quiz">Select a Quiz:</label>
+            <select name="quiz_id" id="quiz" required>
+                <option value="">-- Choose a Quiz --</option>
+                {% for id, title in quizzes %}
+                <option value="{{ id }}" {% if selected_quiz_id==id|string %}selected{% endif %}>
+                    {{ title }}
+                </option>
+                {% endfor %}
+            </select>
+            <button type="submit">Show</button>
+        </form>
+
+        {% if quiz_data %}
+        <!-- Πίνακας Αποτελεσμάτων -->
+        <div class="table-container">
+            <h2>📋 Αποτελέσματα Μαθητών</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Score</th>
+                        <th>Correct</th>
+                        <th>Total</th>
+                        <th>Completed At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for name, score, correct, total, completed in quiz_data %}
+                    <tr>
+                        <td>{{ name }}</td>
+                        <td>{{ score }}</td>
+                        <td>{{ correct }}</td>
+                        <td>{{ total }}</td>
+                        <td>{{ completed }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Γράφημα για το επιλεγμένο quiz -->
+        <div class="chart-container">
+            <h2>📈 Score Chart για το Quiz</h2>
+            <canvas class="charts" id="scoreChart"></canvas>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Μέσος Όρος Σκορ ανά Κουίζ -->
+    <script>
+        fetch('/teacher/chart-data')
+            .then(res => res.json())
+            .then(res => {
+                const ctx = document.getElementById('avgScoreChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: res.labels,
+                        datasets: [{
+                            label: 'Average Score',
+                            data: res.data,
+                            backgroundColor: 'rgba(46, 204, 113, 0.6)',
+                            borderColor: 'rgba(39, 174, 96, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            y: {
+                                ticks: {
+                                    font: {
+                                        size: 18
+                                    }
+                                },
+                                beginAtZero: true,
+                                max: 150,
+                                title: {
+                                    display: true,
+                                    text: 'Average Score',
+                                    font: {
+                                        size: 18,
+                                        weight: 'bold'
+                                    }
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    font: {
+                                        size: 18
+                                    }
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Lessons',
+                                    font: {
+                                        size: 18,
+                                        weight: 'bold'
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Score Chart',
+                                font: {
+                                    size: 18,
+                                    weight: 'bold'
+                                }
+                            },
+                            tooltip: {
+                                titleFont: {
+                                    size: 16,
+                                    weight: 'bold'
+                                },
+                                bodyFont: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+    </script>
+
+    <!-- Σκορ Μαθητών για το Επιλεγμένο Quiz -->
+    {% if quiz_data %}
+    <script>
+        const chartLabels = {{ quiz_data | map(attribute = 0) | list | tojson }};
+        const chartScores = {{ quiz_data | map(attribute = 1) | list | tojson }};
+
+        const scoreCtx = document.getElementById('scoreChart');
+        new Chart(scoreCtx, {
+            type: 'bar',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: 'Score',
+                    data: chartScores,
+                    backgroundColor: 'rgba(52, 152, 219, 0.6)',
+                    borderColor: 'rgba(41, 128, 185, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Points'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Students'
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+    {% endif %}
+</body>
+
+</html>

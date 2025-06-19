@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Completed Quizzes | QuizRot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/my_quizzes.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+    <script src="{{ url_for('static', filename='js/sortTable.js') }}"></script>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <a href="{{ url_for('home') }}" class="logo-link">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" class="logo" alt="QuizRot Logo">
+            </a>
+        </div>
+        <ul class="menu">
+            <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li><a href="{{ url_for('myAccount') }}"
+                    class="{% if request.endpoint == 'myAccount' %}active{% endif %}">My Account</a></li>
+            <li><a href="{{ url_for('available_quizzes') }}">Available Quizzes</a></li>
+            <li><a href="{{ url_for('my_quizzes') }}"
+                    class="{% if request.endpoint == 'my_quizzes' %}active{% endif %}">Completed Quizzes</a></li>
+            <li><a href="{{ url_for('my_achievements') }}">Achievements</a></li>
+            <li><a href="{{ url_for('logout') }}">Logout</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="container">
+            <h2>Completed Quizzes</h2>
+
+            {% if quizzes %}
+            <table class="quiz-table" id="quizTable">
+                <thead>
+                    <tr>
+                        <th>Quiz Title <span class="sort-indicator">⇅</span></th>
+                        <th>Score <span class="sort-indicator">⇅</span></th>
+                        <th>Correct <span class="sort-indicator">⇅</span></th>
+                        <th>XP <span class="sort-indicator">⇅</span></th>
+                        <th>Time <span class="sort-indicator">⇅</span></th>
+                        <th>Date <span class="sort-indicator">⇅</span></th>
+                        <th>Summary</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for quiz in quizzes %}
+                    <tr>
+                        <td>{{ quiz[1] }}</td>
+                        <td>{{ quiz[2] }}</td>
+                        <td>{{ quiz[3] }}/{{ quiz[4] }}</td>
+                        <td>{{ quiz[6] }}</td>
+                        <td>{{ quiz[5] // 60 }}:{{ '%02d' % (quiz[5] % 60) }}</td>
+                        <td>{{ quiz[7] }}</td>
+                        <td><a href="{{ url_for('quiz_summary', quiz_id=quiz[0]) }}" class="summary-link">View</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>No quizzes completed yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,92 @@
+body {
+    font-family: "Segoe UI", sans-serif;
+    background-color: #f4f6f8;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+}
+
+.main-content {
+    max-width: 900px;
+    margin: 40px auto;
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+h1,
+h2 {
+    color: #1c4857;
+    margin-bottom: 20px;
+}
+
+p {
+    font-size: 16px;
+    margin: 6px 0;
+}
+
+.quiz-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 30px;
+}
+
+.quiz-table th,
+.quiz-table td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+    font-size: 14px;
+}
+
+.quiz-table th {
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+.quiz-table tr:hover {
+    background-color: #f9f9f9;
+}
+
+.correct {
+    color: green;
+    font-weight: bold;
+}
+
+.incorrect {
+    color: red;
+    font-weight: bold;
+}
+
+.action-btn {
+    display: inline-block;
+    margin-top: 30px;
+    padding: 12px 25px;
+    background-color: #3498db;
+    color: white;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+}
+
+.action-btn:hover {
+    background-color: #2980b9;
+}
+
+.matching-list {
+    list-style-type: none;
+    padding-left: 0;
+    margin: 0;
+}
+
+.matching-list li {
+    padding: 4px 0;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
+}
+
+.matching-list li strong {
+    color: #3498db;
+}
