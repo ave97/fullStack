@@ -5,7 +5,7 @@
 ## Live Demo
 
 Η εφαρμογή είναι διαθέσιμη στον παρακάτω σύνδεμο:
-https://ptyxiaki.onrender.com/
+https://quizrot.onrender.com
 
 ## Σημαντική σημείωση
 
